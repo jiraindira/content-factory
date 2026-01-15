@@ -2128,5 +2128,187 @@
       },
       "mode": "block"
     }
+  },
+  {
+    "date": "2026-01-15",
+    "publishedAt": "2026-01-15T22:56:37Z",
+    "title_initial": "winter-friendly pet care products for indoor and outdoor animals",
+    "topic": "winter-friendly pet care products for indoor and outdoor animals",
+    "category": "pets",
+    "audience": "pet owners looking to protect and care for their animals during cold weather",
+    "file_failed": "output/failed_posts/2026-01-15-winter-friendly-pet-care-products-for-indoor-and-outdoor-animals.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-15-winter-friendly-pet-care-products-for-indoor-and-outdoor-animals/hero.webp",
+    "word_count_before": 370,
+    "word_count_after": 1355,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 80,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 110,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 148,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 647,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Missing 'Skip it if…' guidance for one or more picks. {'missing_pick_numbers': [3, 6, 7]}"
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_MISSING_SKIP_IT_IF",
+          "level": "error",
+          "message": "Missing 'Skip it if…' guidance for one or more picks.",
+          "meta": {
+            "missing_pick_numbers": [
+              3,
+              6,
+              7
+            ]
+          }
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added 'Skip it if...' guidance to Pet Paw Protection Wax pick",
+      "Added 'Skip it if...' guidance to Insulated Outdoor Dog House pick",
+      "Added 'Skip it if...' guidance to Pet-Friendly Ice Melt for Driveways and Walkways pick",
+      "Added 'Skip it if...' guidance to Winter Booties for Dogs pick"
+    ],
+    "qa_after_repair": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Missing 'Skip it if…' guidance for one or more picks. {'missing_pick_numbers': [3]}"
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_MISSING_SKIP_IT_IF",
+          "level": "error",
+          "message": "Missing 'Skip it if…' guidance for one or more picks.",
+          "meta": {
+            "missing_pick_numbers": [
+              3
+            ]
+          }
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
+  },
+  {
+    "date": "2026-01-15",
+    "publishedAt": "2026-01-15T23:13:31Z",
+    "title_initial": "Choosing winter travel accessories for family road trips",
+    "topic": "winter travel accessories for family road trips",
+    "category": "outdoors_and_travel",
+    "audience": "families planning winter vacations or holiday road trips",
+    "file": "site/src/content/posts/2026-01-15-choosing-winter-travel-accessories-for-family-road-trips.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-15-choosing-winter-travel-accessories-for-family-road-trips/hero.webp",
+    "word_count_before": 447,
+    "word_count_after": 1503,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 88,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 131,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 156,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 681,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "Choosing winter travel accessories for family road trips",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Picking winter travel accessories for family road trips",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "winter travel accessories for family road trips",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ],
+    "qa_initial": {
+      "ok": true,
+      "strict": true,
+      "errors": [],
+      "warnings": [],
+      "issues": [],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": false,
+    "repair_changes": [],
+    "qa_after_repair": null
   }
 ]

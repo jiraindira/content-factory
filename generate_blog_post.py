@@ -5,6 +5,7 @@ from agents.depth_expansion_agent import DepthExpansionAgent
 from agents.image_generation_agent import ImageGenerationAgent
 from agents.final_title_agent import FinalTitleAgent, FinalTitleConfig
 from agents.preflight_qa_agent import PreflightQAAgent
+from agents.post_repair_agent import PostRepairAgent, PostRepairConfig
 
 from integrations.openai_adapters import OpenAIImageGenerator, OpenAIJsonLLM
 from pipeline.image_step import generate_hero_image
@@ -32,11 +33,12 @@ PUBLIC_POST_IMAGES_DIR = PUBLIC_IMAGES_DIR / "posts"
 PLACEHOLDER_HERO_PATH = PUBLIC_IMAGES_DIR / "placeholder-hero.webp"
 
 # Optional image credit fields (Astro schema makes them optional; omit if None)
-DEFAULT_IMAGE_CREDIT_NAME = None  # e.g. "Unsplash"
-DEFAULT_IMAGE_CREDIT_URL = None   # e.g. "https://unsplash.com/photos/abc123"
+DEFAULT_IMAGE_CREDIT_NAME = None
+DEFAULT_IMAGE_CREDIT_URL = None
 
-# Option B mode: no Amazon API yet, so rating/review/price/url may be None
 OPTION_B_MODE = True
+
+MAX_REPAIR_ATTEMPTS = 1
 
 
 def slugify(text: str) -> str:
@@ -83,13 +85,8 @@ def estimate_word_count(text: str) -> int:
 
 
 def product_passes_filter(p) -> bool:
-    """
-    In Option B mode we don't have real rating/reviews yet, so we keep everything.
-    Once you have an API, set OPTION_B_MODE=False to enforce quality thresholds.
-    """
     if OPTION_B_MODE:
         return True
-
     return (
         p.rating is not None
         and p.reviews_count is not None
@@ -113,9 +110,6 @@ def safe_int(x):
 
 
 def _dedupe_products(products: list[dict]) -> list[dict]:
-    """
-    Deduplicate products by normalized title while preserving order.
-    """
     seen: set[str] = set()
     out: list[dict] = []
     for p in products:
@@ -128,10 +122,6 @@ def _dedupe_products(products: list[dict]) -> list[dict]:
 
 
 def _make_pick_anchor_id(title: str, idx: int) -> str:
-    """
-    Stable ID used for placeholder keys (agent replacement) and optional linking.
-    Keep deterministic and filesystem-safe.
-    """
     base = slugify(normalize_text(title))
     if not base:
         base = f"pick-{idx+1}"
@@ -139,13 +129,7 @@ def _make_pick_anchor_id(title: str, idx: int) -> str:
 
 
 def _copy_placeholder_hero(post_slug: str) -> tuple[str, str]:
-    """
-    Fallback: copy placeholder hero into the post folder.
-    Disk: site/public/images/posts/<post_slug>/hero.webp
-    URL:  /images/posts/<post_slug>/hero.webp
-    """
     PUBLIC_POST_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-
     post_img_dir = PUBLIC_POST_IMAGES_DIR / post_slug
     post_img_dir.mkdir(parents=True, exist_ok=True)
 
@@ -166,9 +150,6 @@ def _copy_placeholder_hero(post_slug: str) -> tuple[str, str]:
 
 
 def _extract_section(markdown: str, heading: str) -> str:
-    """
-    Extracts the content under a '## {heading}' until the next '## ' heading.
-    """
     pattern = rf"^##\s+{re.escape(heading)}\s*$"
     lines = markdown.splitlines()
 
@@ -189,13 +170,6 @@ def _extract_section(markdown: str, heading: str) -> str:
 
 
 def _extract_picks(markdown: str) -> list[str]:
-    """
-    Extract pick paragraphs for each ### heading under '## The picks'.
-
-    Strategy:
-      - Find the '## The picks' section block
-      - Within it, for each '### ' heading, grab following paragraph text until <hr /> or next ###/##
-    """
     picks_block = _extract_section(markdown, "The picks")
     if not picks_block:
         return []
@@ -227,10 +201,6 @@ def _extract_picks(markdown: str) -> list[str]:
 
 
 def _replace_frontmatter_field(markdown: str, key: str, value: str) -> str:
-    """
-    Replace or insert a frontmatter field key: "value" within the top YAML block.
-    Assumes markdown starts with --- frontmatter ---.
-    """
     lines = markdown.splitlines()
     if not lines or lines[0].strip() != "---":
         return markdown
@@ -260,11 +230,6 @@ def _replace_frontmatter_field(markdown: str, key: str, value: str) -> str:
 
 
 def _parse_frontmatter(markdown: str) -> dict:
-    """
-    Minimal YAML-ish frontmatter parser for simple key/value fields.
-    Only supports lines like: key: "value" or key: value.
-    Products list is ignored here; we just parse a few fields for QA.
-    """
     lines = markdown.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
@@ -288,6 +253,25 @@ def _parse_frontmatter(markdown: str) -> dict:
         if k:
             out[k] = v
     return out
+
+
+def _run_preflight(
+    *,
+    qa_agent: PreflightQAAgent,
+    markdown: str,
+    intro_text: str,
+    picks_texts: list[str],
+    products: list[dict],
+) -> dict:
+    fm = _parse_frontmatter(markdown)
+    report = qa_agent.run(
+        final_markdown=markdown,
+        frontmatter=fm,
+        intro_text=intro_text,
+        picks_texts=picks_texts,
+        products=products,
+    )
+    return report.model_dump()
 
 
 def main():
@@ -316,12 +300,11 @@ def main():
         print("Error generating products:", e)
         return
 
-    # 3) Filter + normalize + convert to JSON-safe dicts
+    # 3) Filter + normalize
     products: list[dict] = []
     for p in product_models:
         if not product_passes_filter(p):
             continue
-
         products.append({
             "title": normalize_text(p.title),
             "amazon_search_query": getattr(p, "amazon_search_query", None),
@@ -347,7 +330,7 @@ def main():
     if len(products) < 5:
         print("⚠️ Warning: fewer than 5 products passed filters.")
 
-    # 4) Initial title (used for slug/filename; we DO NOT rename later)
+    # 4) Initial title (slug frozen)
     existing_titles: list[str] = []
     try:
         if LOG_PATH.exists():
@@ -383,20 +366,16 @@ def main():
 
     print("✅ Selected title:", selected_title)
 
-    # 5) File naming (slug frozen here)
     post_date = date.today().isoformat()
     slug = slugify(selected_title)
     filename = f"{post_date}-{slug}.md"
     file_path = ASTRO_POSTS_DIR / filename
-
     post_slug = f"{post_date}-{slug}"
 
-    # 6) publishedAt includes time for correct ordering
     published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-    # 7) Frontmatter meta
     meta_description = f"Curated {topic.category.replace('_', ' ')} picks for {normalize_text(topic.audience)}."
 
+    # Astro products
     astro_products: list[dict] = []
     for p in products:
         astro_products.append({
@@ -419,7 +398,6 @@ def main():
     md.append("---")
     md.append("")
 
-    # Canonical post skeleton (structure only)
     md.append("## Intro")
     md.append("")
     md.append("{{INTRO}}")
@@ -434,10 +412,10 @@ def main():
     md.append("")
 
     for idx, p in enumerate(products):
-        title = normalize_text(p.get("title", "")).strip() or f"Product {idx+1}"
-        pick_id = _make_pick_anchor_id(title, idx)
+        t = normalize_text(p.get("title", "")).strip() or f"Product {idx+1}"
+        pick_id = _make_pick_anchor_id(t, idx)
 
-        md.append(f"### {title}")
+        md.append(f"### {t}")
         md.append("")
         md.append(f"{{{{PICK:{pick_id}}}}}")
         md.append("")
@@ -452,9 +430,8 @@ def main():
     draft_markdown = "\n".join(md)
     before_wc = estimate_word_count(draft_markdown)
 
-    # 8) Depth expansion (UPGRADE MODE)
+    # Depth expansion
     depth_agent = DepthExpansionAgent()
-
     modules = [
         ExpansionModuleSpec(name="intro", enabled=True, max_words=140, rewrite_mode="upgrade"),
         ExpansionModuleSpec(name="how_we_chose", enabled=True, max_words=170, rewrite_mode="upgrade"),
@@ -477,14 +454,13 @@ def main():
     final_markdown = depth_out.get("expanded_markdown", draft_markdown)
     after_wc = estimate_word_count(final_markdown)
 
-    # 9) Extract final content (used by title + image + QA)
+    # Extract content used by title/image/QA
     intro_text = _extract_section(final_markdown, "Intro")
     picks_texts = _extract_picks(final_markdown)
     alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
 
-    # 10) Final editorial title pass (slug remains frozen)
+    # Final title pass
     max_chars = int(os.getenv("TITLE_MAX_CHARS", "60"))
-
     try:
         llm = OpenAIJsonLLM()
         final_title_agent = FinalTitleAgent(
@@ -504,11 +480,10 @@ def main():
     except Exception as e:
         print("⚠️ Final title pass unavailable, keeping initial title:", e)
 
-    # 11) Hero image generation (first creation only, with placeholder fallback)
+    # Hero image generation
     try:
         llm = OpenAIJsonLLM()
         img = OpenAIImageGenerator()
-
         image_agent = ImageGenerationAgent(
             llm=llm,
             image_gen=img,
@@ -527,51 +502,83 @@ def main():
             picks=picks_texts,
             alternatives=alternatives_text or None,
         )
-
         hero_image_url, hero_alt = hero.hero_image_path, hero.hero_alt
         print("✅ Hero image ready:", hero_image_url)
 
     except Exception as e:
-        msg = str(e)
-        if "Error code: 403" in msg and "must be verified" in msg:
-            print("⚠️ Hero image generation gated (org verification required). Using placeholder.")
-        else:
-            print("⚠️ Hero image generation unavailable, using placeholder:", e)
-
+        print("⚠️ Hero image generation unavailable, using placeholder:", e)
         hero_image_url, hero_alt = _copy_placeholder_hero(post_slug)
 
-    # Inject hero into frontmatter
     final_markdown = _replace_frontmatter_field(final_markdown, "heroImage", hero_image_url)
     final_markdown = _replace_frontmatter_field(final_markdown, "heroAlt", hero_alt)
 
-    # Optional image credit fields
     if DEFAULT_IMAGE_CREDIT_NAME:
         final_markdown = _replace_frontmatter_field(final_markdown, "imageCreditName", DEFAULT_IMAGE_CREDIT_NAME)
     if DEFAULT_IMAGE_CREDIT_URL:
         final_markdown = _replace_frontmatter_field(final_markdown, "imageCreditUrl", DEFAULT_IMAGE_CREDIT_URL)
 
-    # 12) Preflight QA (blocks publish by default)
+    # Preflight QA + single repair attempt
     strict = os.getenv("PREFLIGHT_STRICT", "1").strip() not in {"0", "false", "False"}
     qa_agent = PreflightQAAgent(strict=strict)
 
-    frontmatter_for_qa = _parse_frontmatter(final_markdown)
-    qa = qa_agent.run(
-        final_markdown=final_markdown,
-        frontmatter=frontmatter_for_qa,
+    qa_initial = _run_preflight(
+        qa_agent=qa_agent,
+        markdown=final_markdown,
         intro_text=intro_text,
         picks_texts=picks_texts,
         products=products,
     )
 
-    if not qa.ok:
+    repair_attempted = False
+    qa_after_repair = None
+    repair_changes: list[str] = []
+
+    if not qa_initial.get("ok", False) and MAX_REPAIR_ATTEMPTS > 0:
+        repair_attempted = True
+        print("🛠️ Preflight QA failed. Attempting one targeted auto-repair...")
+
+        llm = OpenAIJsonLLM()
+        repair_agent = PostRepairAgent(llm=llm, config=PostRepairConfig(max_changes=12))
+
+        repair_out = repair_agent.run(
+            draft_markdown=final_markdown,
+            qa_report=qa_initial,
+            products=products,
+            intro_text=intro_text,
+            picks_texts=picks_texts,
+        )
+        final_markdown = repair_out.get("repaired_markdown", final_markdown)
+        repair_changes = repair_out.get("changes_made", []) if isinstance(repair_out.get("changes_made"), list) else []
+
+        # Re-extract intro/picks after repair (important!)
+        intro_text = _extract_section(final_markdown, "Intro")
+        picks_texts = _extract_picks(final_markdown)
+        alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
+
+        qa_after_repair = _run_preflight(
+            qa_agent=qa_agent,
+            markdown=final_markdown,
+            intro_text=intro_text,
+            picks_texts=picks_texts,
+            products=products,
+        )
+
+    final_ok = qa_after_repair["ok"] if qa_after_repair is not None else qa_initial["ok"]
+
+    if not final_ok:
         failed_path = FAILED_POSTS_DIR / filename
         failed_path.write_text(final_markdown, encoding="utf-8")
-        print("❌ Preflight QA failed. Post NOT published.")
-        for e in qa.errors:
-            print("   -", e)
-        if qa.warnings:
-            for w in qa.warnings:
-                print("   (warn)", w)
+
+        print("❌ Preflight QA failed after repair. Post NOT published.")
+        for i in qa_initial.get("issues", []):
+            if i.get("level") == "error":
+                print("   -", i.get("rule_id"), ":", i.get("message"))
+
+        if qa_after_repair:
+            print("   After repair, still failing errors:")
+            for i in qa_after_repair.get("issues", []):
+                if i.get("level") == "error":
+                    print("   -", i.get("rule_id"), ":", i.get("message"))
 
         append_log({
             "date": post_date,
@@ -586,23 +593,25 @@ def main():
             "word_count_before": before_wc,
             "word_count_after": after_wc,
             "depth_modules_applied": depth_out.get("applied_modules", []),
-            "qa": qa.model_dump(),
+            "qa_initial": qa_initial,
+            "repair_attempted": repair_attempted,
+            "repair_changes": repair_changes,
+            "qa_after_repair": qa_after_repair,
         })
         print(f"✅ Failed draft saved to {failed_path}")
         print(f"✅ Failure logged in {LOG_PATH}")
         return
 
-    # QA passed (or warn-only mode)
-    if qa.warnings:
+    # Publish
+    warnings = (qa_after_repair or qa_initial).get("warnings", [])
+    if warnings:
         print("⚠️ Preflight QA warnings:")
-        for w in qa.warnings:
+        for w in warnings:
             print("   -", w)
 
-    # 13) Write post
     file_path.write_text(final_markdown, encoding="utf-8")
     print(f"✅ Astro post saved to {file_path}")
 
-    # 14) Log
     append_log({
         "date": post_date,
         "publishedAt": published_at,
@@ -617,7 +626,10 @@ def main():
         "word_count_after": after_wc,
         "depth_modules_applied": depth_out.get("applied_modules", []),
         "title_candidates_top3": (title_out.get("selected", [])[:3] if isinstance(title_out, dict) else []),
-        "qa": qa.model_dump(),
+        "qa_initial": qa_initial,
+        "repair_attempted": repair_attempted,
+        "repair_changes": repair_changes,
+        "qa_after_repair": qa_after_repair,
     })
     print(f"✅ Post logged in {LOG_PATH}")
 

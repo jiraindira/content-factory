@@ -2,14 +2,32 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Iterable
+from typing import Any
 
-from schemas.preflight import PreflightQAReport
+from schemas.preflight import PreflightQAReport, QAIssue
+
+
+# -----------------------------
+# Rule IDs (stable contracts)
+# -----------------------------
+RULE_MISSING_FRONTMATTER_TITLE = "RULE_MISSING_FRONTMATTER_TITLE"
+RULE_MISSING_FRONTMATTER_DESCRIPTION = "RULE_MISSING_FRONTMATTER_DESCRIPTION"
+RULE_MISSING_FRONTMATTER_PUBLISHED_AT = "RULE_MISSING_FRONTMATTER_PUBLISHED_AT"
+RULE_INVALID_FRONTMATTER_PUBLISHED_AT = "RULE_INVALID_FRONTMATTER_PUBLISHED_AT"
+RULE_MISSING_FRONTMATTER_HERO_IMAGE = "RULE_MISSING_FRONTMATTER_HERO_IMAGE"
+RULE_MISSING_FRONTMATTER_HERO_ALT = "RULE_MISSING_FRONTMATTER_HERO_ALT"
+
+RULE_UNRESOLVED_PLACEHOLDERS = "RULE_UNRESOLVED_PLACEHOLDERS"
+RULE_EMPTY_INTRO = "RULE_EMPTY_INTRO"
+RULE_NO_PICKS_EXTRACTED = "RULE_NO_PICKS_EXTRACTED"
+RULE_LOW_PRODUCT_COUNT = "RULE_LOW_PRODUCT_COUNT"
+RULE_MISSING_SKIP_IT_IF = "RULE_MISSING_SKIP_IT_IF"
+RULE_FORBIDDEN_TESTING_CLAIMS = "RULE_FORBIDDEN_TESTING_CLAIMS"
+RULE_MISSING_SPACE_AFTER_PUNCT = "RULE_MISSING_SPACE_AFTER_PUNCT"
 
 
 _PLACEHOLDER_RE = re.compile(r"\{\{[^}]+\}\}")  # catches {{INTRO}}, {{PICK:...}} etc.
 
-# Common "we tested" style claims we must avoid
 _FORBIDDEN_TESTING_PHRASES = [
     "we tested",
     "we've tested",
@@ -25,12 +43,20 @@ _FORBIDDEN_TESTING_PHRASES = [
     "we put it through",
 ]
 
-# Missing-space-after-punctuation patterns like "files.Skip"
-# We keep this conservative: only flag lower->punct->Upper (common typo) to avoid false positives like "U.S."
 _MISSING_SPACE_AFTER_PUNCT_RE = re.compile(r"(?<=[a-z])[.!?](?=[A-Z])")
 
-# Weak but useful: detect any leftover HTML-ish <hr /> formatting issues is okay, not an error.
-# We'll ignore <hr /> itself.
+# Acceptable "skip guidance" patterns. We care about the intent: a clear "don't buy it if..." line.
+# This avoids brittle failures when the copy uses synonyms (pass/overkill/not for you).
+_SKIP_GUIDANCE_PATTERNS = [
+    r"\bskip it\b",
+    r"\bskip this\b",
+    r"\bskip\b.*\bif\b",
+    r"\bpass\b.*\bif\b",
+    r"\bnot for you\b.*\bif\b",
+    r"\bonly worth it\b.*\bif\b",
+    r"\boverkill\b.*\bif\b",
+    r"\byou can skip\b",
+]
 
 
 def _count_placeholders(text: str) -> int:
@@ -62,7 +88,7 @@ def _missing_space_after_punct_samples(text: str, limit: int = 10) -> list[str]:
     return out
 
 
-def _parse_frontmatter_value(frontmatter: dict, key: str) -> str:
+def _parse_frontmatter_value(frontmatter: dict[str, Any], key: str) -> str:
     v = frontmatter.get(key)
     if v is None:
         return ""
@@ -72,7 +98,6 @@ def _parse_frontmatter_value(frontmatter: dict, key: str) -> str:
 
 
 def _is_iso_datetime(s: str) -> bool:
-    # Accept "Z" and offset variants
     s = (s or "").strip()
     if not s:
         return False
@@ -86,12 +111,15 @@ def _is_iso_datetime(s: str) -> bool:
         return False
 
 
+def _has_skip_guidance(text: str) -> bool:
+    t = (text or "").lower()
+    return any(re.search(pat, t) for pat in _SKIP_GUIDANCE_PATTERNS)
+
+
 class PreflightQAAgent:
     """
     Deterministic QA checks to prevent publishing obviously-bad posts.
-
-    This agent does NOT mutate content.
-    It returns a report with errors/warnings and an ok flag.
+    Produces rule IDs so a repair agent can fix targeted issues.
     """
 
     def __init__(self, *, strict: bool = True) -> None:
@@ -101,14 +129,16 @@ class PreflightQAAgent:
         self,
         *,
         final_markdown: str,
-        frontmatter: dict,
+        frontmatter: dict[str, Any],
         intro_text: str,
         picks_texts: list[str],
         products: list[dict],
     ) -> PreflightQAReport:
-        errors: list[str] = []
-        warnings: list[str] = []
+        issues: list[QAIssue] = []
         metrics: dict[str, int] = {}
+
+        def add(rule_id: str, level: str, message: str, meta: dict[str, Any] | None = None) -> None:
+            issues.append(QAIssue(rule_id=rule_id, level=level, message=message, meta=meta or {}))
 
         # 1) Frontmatter presence & sanity
         title = _parse_frontmatter_value(frontmatter, "title")
@@ -118,76 +148,111 @@ class PreflightQAAgent:
         hero_alt = _parse_frontmatter_value(frontmatter, "heroAlt")
 
         if not title:
-            errors.append("Frontmatter missing title.")
+            add(RULE_MISSING_FRONTMATTER_TITLE, "error", "Frontmatter missing title.")
         if not desc:
-            errors.append("Frontmatter missing description.")
+            add(RULE_MISSING_FRONTMATTER_DESCRIPTION, "error", "Frontmatter missing description.")
         if not published_at:
-            errors.append("Frontmatter missing publishedAt.")
+            add(RULE_MISSING_FRONTMATTER_PUBLISHED_AT, "error", "Frontmatter missing publishedAt.")
         elif not _is_iso_datetime(published_at):
-            warnings.append(f"publishedAt is not a valid ISO datetime: {published_at!r}")
+            add(
+                RULE_INVALID_FRONTMATTER_PUBLISHED_AT,
+                "warning",
+                f"publishedAt is not a valid ISO datetime: {published_at!r}",
+                {"publishedAt": published_at},
+            )
 
         if not hero_image:
-            errors.append("Frontmatter missing heroImage.")
+            add(RULE_MISSING_FRONTMATTER_HERO_IMAGE, "error", "Frontmatter missing heroImage.")
         if not hero_alt:
-            errors.append("Frontmatter missing heroAlt.")
+            add(RULE_MISSING_FRONTMATTER_HERO_ALT, "error", "Frontmatter missing heroAlt.")
 
         # 2) Placeholders must be fully resolved
         placeholders_count = _count_placeholders(final_markdown)
         metrics["placeholders_count"] = placeholders_count
         if placeholders_count > 0:
             ph = _find_placeholders(final_markdown, limit=12)
-            errors.append(f"Unresolved placeholders detected ({placeholders_count}). Examples: {ph}")
+            add(
+                RULE_UNRESOLVED_PLACEHOLDERS,
+                "error",
+                f"Unresolved placeholders detected ({placeholders_count}).",
+                {"examples": ph, "count": placeholders_count},
+            )
 
-        # 3) Intro must exist and not be placeholder-ish
+        # 3) Intro must exist
         if not (intro_text or "").strip():
-            errors.append("Intro section appears empty.")
+            add(RULE_EMPTY_INTRO, "error", "Intro section appears empty.")
 
         # 4) Picks must exist
         metrics["products_count"] = len(products or [])
         metrics["picks_count"] = len(picks_texts or [])
         if len(products or []) < 5:
-            warnings.append(f"Low product count ({len(products or [])}). Consider >= 5.")
+            add(
+                RULE_LOW_PRODUCT_COUNT,
+                "warning",
+                f"Low product count ({len(products or [])}). Consider >= 5.",
+                {"product_count": len(products or [])},
+            )
         if len(picks_texts or []) == 0:
-            errors.append("No pick writeups extracted under '## The picks'.")
+            add(RULE_NO_PICKS_EXTRACTED, "error", "No pick writeups extracted under '## The picks'.")
 
-        # 5) Ensure each pick includes a "Skip it if" clause (credibility pattern)
-        missing_skip = []
+        # 5) Ensure each pick includes a "skip guidance" clause (intent-based)
+        missing_guidance = []
         for i, p in enumerate(picks_texts or []):
-            if "skip it" not in (p or "").lower():
-                missing_skip.append(i + 1)
-        if missing_skip:
-            errors.append(f"Missing 'Skip it if…' guidance for pick(s): {missing_skip}")
+            if not _has_skip_guidance(p or ""):
+                missing_guidance.append(i + 1)
+        if missing_guidance:
+            add(
+                RULE_MISSING_SKIP_IT_IF,
+                "error",
+                "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
+                {"missing_pick_numbers": missing_guidance},
+            )
 
         # 6) Forbidden claims: testing/review language
         hits = _contains_forbidden_testing(final_markdown)
         metrics["forbidden_testing_hits"] = len(hits)
         if hits:
-            errors.append(f"Forbidden testing/review claims detected: {sorted(set(hits))}")
+            add(
+                RULE_FORBIDDEN_TESTING_CLAIMS,
+                "error",
+                "Forbidden testing/review claims detected.",
+                {"phrases": sorted(set(hits))},
+            )
 
-        # 7) Formatting nits: missing spaces after punctuation like 'files.Skip'
+        # 7) Formatting nits: missing spaces after punctuation
         samples = _missing_space_after_punct_samples(final_markdown, limit=8)
         metrics["missing_space_after_punct_hits"] = len(samples)
         if samples:
-            warnings.append(
-                "Possible missing space after punctuation (examples): "
-                + " | ".join(samples)
+            add(
+                RULE_MISSING_SPACE_AFTER_PUNCT,
+                "warning",
+                "Possible missing space after punctuation.",
+                {"examples": samples},
             )
 
-        # Outcome
-        ok = len(errors) == 0
+        # Outcome logic
         mode = "block" if self._strict else "warn_only"
 
+        errors = [i.message if not i.meta else f"{i.message} {i.meta}" for i in issues if i.level == "error"]
+        warnings = [i.message if not i.meta else f"{i.message} {i.meta}" for i in issues if i.level == "warning"]
+
+        ok = len([i for i in issues if i.level == "error"]) == 0
+
         # If not strict, downgrade errors to warnings and allow publishing
-        if not self._strict and errors:
-            warnings.extend([f"(non-blocking) {e}" for e in errors])
-            errors = []
+        if not self._strict and not ok:
+            for i in issues:
+                if i.level == "error":
+                    i.level = "warning"  # type: ignore[misc]
             ok = True
+            errors = []
+            warnings = [i.message if not i.meta else f"{i.message} {i.meta}" for i in issues]
 
         return PreflightQAReport(
             ok=ok,
             strict=self._strict,
             errors=errors,
             warnings=warnings,
+            issues=issues,
             metrics=metrics,
             mode=mode,
         )
