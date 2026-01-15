@@ -2077,5 +2077,56 @@
         ]
       }
     ]
+  },
+  {
+    "date": "2026-01-15",
+    "publishedAt": "2026-01-15T22:31:59Z",
+    "title_initial": "winter-friendly indoor plants that improve air quality and mood",
+    "topic": "winter-friendly indoor plants that improve air quality and mood",
+    "category": "home_and_kitchen",
+    "audience": "homeowners and apartment dwellers interested in indoor gardening and wellness",
+    "file_failed": "output/failed_posts/2026-01-15-winter-friendly-indoor-plants-that-improve-air-quality-and-mood.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-15-winter-friendly-indoor-plants-that-improve-air-quality-and-mood/hero.webp",
+    "word_count_before": 436,
+    "word_count_after": 1456,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 84,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 122,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 151,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 663,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "qa": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Missing 'Skip it if…' guidance for pick(s): [2]"
+      ],
+      "warnings": [],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
   }
 ]

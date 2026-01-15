@@ -4,6 +4,7 @@ from agents.title_optimization_agent import TitleOptimizationAgent
 from agents.depth_expansion_agent import DepthExpansionAgent
 from agents.image_generation_agent import ImageGenerationAgent
 from agents.final_title_agent import FinalTitleAgent, FinalTitleConfig
+from agents.preflight_qa_agent import PreflightQAAgent
 
 from integrations.openai_adapters import OpenAIImageGenerator, OpenAIJsonLLM
 from pipeline.image_step import generate_hero_image
@@ -22,6 +23,8 @@ import shutil
 
 ASTRO_POSTS_DIR = Path("site/src/content/posts")
 LOG_PATH = Path("output/posts_log.json")
+
+FAILED_POSTS_DIR = Path("output/failed_posts")
 
 # Image convention (public/)
 PUBLIC_IMAGES_DIR = Path("site/public/images")
@@ -243,12 +246,9 @@ def _replace_frontmatter_field(markdown: str, key: str, value: str) -> str:
     fm = lines[:end_idx]
     body = lines[end_idx:]
 
-    # Remove existing occurrences
     prefix = f"{key}:"
     fm = [l for l in fm if not l.startswith(prefix)]
 
-    # Insert near top after the initial ---
-    # Keep ordering tidy: insert after title if we can, otherwise append
     insert_at = len(fm)
     for i, l in enumerate(fm):
         if l.startswith("title:"):
@@ -259,10 +259,42 @@ def _replace_frontmatter_field(markdown: str, key: str, value: str) -> str:
     return "\n".join(fm + body)
 
 
+def _parse_frontmatter(markdown: str) -> dict:
+    """
+    Minimal YAML-ish frontmatter parser for simple key/value fields.
+    Only supports lines like: key: "value" or key: value.
+    Products list is ignored here; we just parse a few fields for QA.
+    """
+    lines = markdown.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+
+    end_idx = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        return {}
+
+    fm_lines = lines[1:end_idx]
+    out: dict = {}
+    for l in fm_lines:
+        if ":" not in l:
+            continue
+        k, v = l.split(":", 1)
+        k = k.strip()
+        v = v.strip().strip('"').strip("'")
+        if k:
+            out[k] = v
+    return out
+
+
 def main():
     print(">>> generate_blog_post.py started")
 
     ASTRO_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    FAILED_POSTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # 1) Topic
     topic_agent = TopicSelectionAgent()
@@ -352,16 +384,17 @@ def main():
     print("✅ Selected title:", selected_title)
 
     # 5) File naming (slug frozen here)
-    post_date = date.today().isoformat()  # still used for filename + image folder
-    published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    post_date = date.today().isoformat()
     slug = slugify(selected_title)
     filename = f"{post_date}-{slug}.md"
     file_path = ASTRO_POSTS_DIR / filename
 
-    # Post slug used for images folder convention
     post_slug = f"{post_date}-{slug}"
 
-    # 6) Frontmatter meta
+    # 6) publishedAt includes time for correct ordering
+    published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+    # 7) Frontmatter meta
     meta_description = f"Curated {topic.category.replace('_', ' ')} picks for {normalize_text(topic.audience)}."
 
     astro_products: list[dict] = []
@@ -419,7 +452,7 @@ def main():
     draft_markdown = "\n".join(md)
     before_wc = estimate_word_count(draft_markdown)
 
-    # 7) Depth expansion (UPGRADE MODE)
+    # 8) Depth expansion (UPGRADE MODE)
     depth_agent = DepthExpansionAgent()
 
     modules = [
@@ -444,13 +477,12 @@ def main():
     final_markdown = depth_out.get("expanded_markdown", draft_markdown)
     after_wc = estimate_word_count(final_markdown)
 
-    # 8) Extract final content and run final editorial title pass (slug remains frozen)
+    # 9) Extract final content (used by title + image + QA)
     intro_text = _extract_section(final_markdown, "Intro")
     picks_texts = _extract_picks(final_markdown)
     alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
 
-
-    # Title max chars configurable for mobile
+    # 10) Final editorial title pass (slug remains frozen)
     max_chars = int(os.getenv("TITLE_MAX_CHARS", "60"))
 
     try:
@@ -470,12 +502,9 @@ def main():
         final_markdown = _replace_frontmatter_field(final_markdown, "title", final_title)
         print("✅ Final Title (post-body):", final_title)
     except Exception as e:
-        # If title pass fails, keep original title
         print("⚠️ Final title pass unavailable, keeping initial title:", e)
 
-    # 9) Hero image generation (first creation only, with placeholder fallback)
-    alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
-
+    # 11) Hero image generation (first creation only, with placeholder fallback)
     try:
         llm = OpenAIJsonLLM()
         img = OpenAIImageGenerator()
@@ -521,13 +550,62 @@ def main():
     if DEFAULT_IMAGE_CREDIT_URL:
         final_markdown = _replace_frontmatter_field(final_markdown, "imageCreditUrl", DEFAULT_IMAGE_CREDIT_URL)
 
-    # 10) Write post
+    # 12) Preflight QA (blocks publish by default)
+    strict = os.getenv("PREFLIGHT_STRICT", "1").strip() not in {"0", "false", "False"}
+    qa_agent = PreflightQAAgent(strict=strict)
+
+    frontmatter_for_qa = _parse_frontmatter(final_markdown)
+    qa = qa_agent.run(
+        final_markdown=final_markdown,
+        frontmatter=frontmatter_for_qa,
+        intro_text=intro_text,
+        picks_texts=picks_texts,
+        products=products,
+    )
+
+    if not qa.ok:
+        failed_path = FAILED_POSTS_DIR / filename
+        failed_path.write_text(final_markdown, encoding="utf-8")
+        print("❌ Preflight QA failed. Post NOT published.")
+        for e in qa.errors:
+            print("   -", e)
+        if qa.warnings:
+            for w in qa.warnings:
+                print("   (warn)", w)
+
+        append_log({
+            "date": post_date,
+            "publishedAt": published_at,
+            "title_initial": normalize_text(selected_title),
+            "topic": normalize_text(topic.topic),
+            "category": topic.category,
+            "audience": normalize_text(topic.audience),
+            "file_failed": str(failed_path).replace("\\", "/"),
+            "product_count": len(products),
+            "heroImage": hero_image_url,
+            "word_count_before": before_wc,
+            "word_count_after": after_wc,
+            "depth_modules_applied": depth_out.get("applied_modules", []),
+            "qa": qa.model_dump(),
+        })
+        print(f"✅ Failed draft saved to {failed_path}")
+        print(f"✅ Failure logged in {LOG_PATH}")
+        return
+
+    # QA passed (or warn-only mode)
+    if qa.warnings:
+        print("⚠️ Preflight QA warnings:")
+        for w in qa.warnings:
+            print("   -", w)
+
+    # 13) Write post
     file_path.write_text(final_markdown, encoding="utf-8")
     print(f"✅ Astro post saved to {file_path}")
 
-    # 11) Log
+    # 14) Log
     append_log({
         "date": post_date,
+        "publishedAt": published_at,
         "title_initial": normalize_text(selected_title),
         "topic": normalize_text(topic.topic),
         "category": topic.category,
@@ -539,6 +617,7 @@ def main():
         "word_count_after": after_wc,
         "depth_modules_applied": depth_out.get("applied_modules", []),
         "title_candidates_top3": (title_out.get("selected", [])[:3] if isinstance(title_out, dict) else []),
+        "qa": qa.model_dump(),
     })
     print(f"✅ Post logged in {LOG_PATH}")
 
