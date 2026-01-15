@@ -1,12 +1,15 @@
 # Python
 __pycache__/
 *.pyc
-
-# Poetry
 .venv/
-
-# Environment variables
 .env
 
-# Output files
+# Outputs / logs
 output/
+outputs/
+*.log
+
+# Node / Astro
+site/node_modules/
+site/.astro/
+site/dist/

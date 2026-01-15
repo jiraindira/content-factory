@@ -140,9 +140,10 @@ const showToc = Array.isArray(toc) && toc.length > 0;
           )}
 
           <div class="side-actions">
-            <a href="#top-picks" class="side-btn">Jump to Top Picks</a>
+            <a href="#the-picks" class="side-btn">Jump to picks</a>
             <p class="side-tip">
-              Tip: skim the picks first, then read the “Why this list” for more context on our recommendations.
+              Tip: skim the picks first, then circle back to “How this list was chosen” if you want the logic
+              behind the list.
             </p>
           </div>
         </div>
@@ -386,8 +387,8 @@ const showToc = Array.isArray(toc) && toc.length > 0;
   /* Readable prose without relying on global typography plugins */
   .prose-premium {
     max-width: 72ch;
-    font-size: 16px;
-    line-height: 1.75;
+    font-size: 16.5px;
+    line-height: 1.72;
     color: rgba(17, 24, 39, 0.92);
   }
 
@@ -400,17 +401,47 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     color: rgba(17, 24, 39, 0.95);
   }
 
+  /* Pick section styling (H3) for better scanability */
+  .prose-premium :global(h3) {
+    margin-top: 22px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: rgba(17, 24, 39, 0.95);
+    font-weight: 700;
+  }
+
+  /* Divider between picks (but not before the first H3 in the article) */
+  .prose-premium :global(h3:not(:first-of-type)) {
+    padding-top: 18px;
+    border-top: 1px solid rgba(17, 24, 39, 0.10);
+  }
+
+  .prose-premium :global(h3 + p) {
+    margin-top: 10px;
+  }
+
+  .prose-premium :global(h3 + p + p) {
+    margin-top: 10px;
+  }
+
   .prose-premium :global(p) {
     margin: 12px 0;
   }
 
   .prose-premium :global(ul),
   .prose-premium :global(ol) {
-    margin: 12px 0 12px 20px;
+    margin: 14px 0 14px 20px;
+    padding-left: 18px;
   }
 
   .prose-premium :global(li) {
-    margin: 6px 0;
+    margin: 8px 0;
+  }
+
+  .prose-premium :global(li::marker) {
+    color: rgba(55, 65, 81, 0.65);
   }
 
   .prose-premium :global(a) {

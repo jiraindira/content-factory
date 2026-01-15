@@ -1272,5 +1272,810 @@
         ]
       }
     ]
+  },
+  {
+    "date": "2026-01-13",
+    "title": "durable and insulated outdoor gear for winter hiking and camping",
+    "topic": "durable and insulated outdoor gear for winter hiking and camping",
+    "category": "outdoors_and_travel",
+    "audience": "outdoor enthusiasts and adventure travelers preparing for winter activities",
+    "file": "site/src/content/posts/2026-01-13-durable-and-insulated-outdoor-gear-for-winter-hiking-and-camping.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-13-durable-and-insulated-outdoor-gear-for-winter-hiking-and-camping/hero.webp",
+    "word_count_before": 417,
+    "word_count_after": 1626,
+    "depth_modules_applied": [
+      {
+        "name": "why_this_list",
+        "added_words_estimate": 107,
+        "notes": "Rewrote Why this list (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 224,
+        "notes": "Added How we chose (upgrade)."
+      },
+      {
+        "name": "quick_picks",
+        "added_words_estimate": 170,
+        "notes": "Added Quick picks."
+      },
+      {
+        "name": "buyers_guide",
+        "added_words_estimate": 223,
+        "notes": "Added Buyer’s guide (upgrade)."
+      },
+      {
+        "name": "faqs",
+        "added_words_estimate": 261,
+        "notes": "Added FAQs (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 224,
+        "notes": "Added Alternatives worth considering (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "durable and insulated outdoor gear for winter hiking and camping",
+        "archetype": "plain",
+        "score": 87.29,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-13",
+    "title": "winter financial planning tools and apps for managing holiday expenses",
+    "topic": "winter financial planning tools and apps for managing holiday expenses",
+    "category": "finance_and_productivity",
+    "audience": "US adults looking to budget and manage spending during the winter holiday season",
+    "file": "site/src/content/posts/2026-01-13-winter-financial-planning-tools-and-apps-for-managing-holiday-expenses.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-13-winter-financial-planning-tools-and-apps-for-managing-holiday-expenses/hero.webp",
+    "word_count_before": 484,
+    "word_count_after": 1430,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 106,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 111,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 729,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter financial planning tools and apps for managing holiday expenses",
+        "archetype": "plain",
+        "score": 75.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-13",
+    "title": "Choosing indoor herb garden kits for winter kitchens",
+    "topic": "indoor herb garden kits for winter kitchens",
+    "category": "home_and_kitchen",
+    "audience": "home cooks and gardening enthusiasts looking to grow fresh herbs indoors during winter",
+    "file": "site/src/content/posts/2026-01-13-choosing-indoor-herb-garden-kits-for-winter-kitchens.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-13-choosing-indoor-herb-garden-kits-for-winter-kitchens/hero.webp",
+    "word_count_before": 467,
+    "word_count_after": 1570,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 90,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 122,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 172,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 719,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "Choosing indoor herb garden kits for winter kitchens",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "indoor herb garden kits for winter kitchens",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "indoor herb garden kits for winter kitchens for Indoor Herb",
+        "archetype": "pk-topic",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-13",
+    "title": "indoor air quality improvement products for winter months",
+    "topic": "indoor air quality improvement products for winter months",
+    "category": "health_and_fitness",
+    "audience": "homeowners and renters concerned about health and wellness during winter",
+    "file": "site/src/content/posts/2026-01-13-indoor-air-quality-improvement-products-for-winter-months.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-13-indoor-air-quality-improvement-products-for-winter-months/hero.webp",
+    "word_count_before": 453,
+    "word_count_after": 1552,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 107,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 139,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 154,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 699,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "indoor air quality improvement products for winter months",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Picking indoor air quality improvement products for winter months",
+        "archetype": "choosing",
+        "score": 87.86,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Indoor Air: indoor air quality improvement products for winter months",
+        "archetype": "topic-first",
+        "score": 75.31,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-13",
+    "title": "Choosing winter-friendly grooming tools and products for men",
+    "topic": "winter-friendly grooming tools and products for men",
+    "category": "beauty_and_grooming",
+    "audience": "men looking for grooming solutions suited to cold weather conditions",
+    "file": "site/src/content/posts/2026-01-13-choosing-winter-friendly-grooming-tools-and-products-for-men.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-13-choosing-winter-friendly-grooming-tools-and-products-for-men/hero.webp",
+    "word_count_before": 413,
+    "word_count_after": 1407,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 86,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 115,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 154,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 639,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "Choosing winter-friendly grooming tools and products for men",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Picking winter-friendly grooming tools and products for men",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "winter-friendly grooming tools and products for men",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "winter-friendly indoor activities and toys for toddlers",
+    "topic": "winter-friendly indoor activities and toys for toddlers",
+    "category": "parenting_and_family",
+    "audience": "parents of toddlers looking for engaging indoor options during winter",
+    "file": "site/src/content/posts/2026-01-14-winter-friendly-indoor-activities-and-toys-for-toddlers.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-winter-friendly-indoor-activities-and-toys-for-toddlers/hero.webp",
+    "word_count_before": 412,
+    "word_count_after": 1474,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 83,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 131,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 184,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 664,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter-friendly indoor activities and toys for toddlers",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Very similar to existing title"
+        ]
+      },
+      {
+        "title": "Picking winter-friendly indoor activities and toys for toddlers",
+        "archetype": "choosing",
+        "score": 83.5,
+        "reasons": [
+          "Primary keyword match",
+          "Very similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "winter hiking gear and apparel for cold weather outdoor activities",
+    "topic": "winter hiking gear and apparel for cold weather outdoor activities",
+    "category": "outdoors_and_travel",
+    "audience": "outdoor enthusiasts and casual hikers preparing for winter excursions",
+    "file": "site/src/content/posts/2026-01-14-winter-hiking-gear-and-apparel-for-cold-weather-outdoor-activities.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-winter-hiking-gear-and-apparel-for-cold-weather-outdoor-activities/hero.webp",
+    "word_count_before": 396,
+    "word_count_after": 1381,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 89,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 112,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 159,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 625,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter hiking gear and apparel for cold weather outdoor activities",
+        "archetype": "plain",
+        "score": 80.46,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "winter financial planning tools and apps for budgeting and saving",
+    "topic": "winter financial planning tools and apps for budgeting and saving",
+    "category": "finance_and_productivity",
+    "audience": "adults looking to improve personal finance management during the winter months",
+    "file": "site/src/content/posts/2026-01-14-winter-financial-planning-tools-and-apps-for-budgeting-and-saving.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-winter-financial-planning-tools-and-apps-for-budgeting-and-saving/hero.webp",
+    "word_count_before": 402,
+    "word_count_after": 1420,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 88,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 136,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 143,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 651,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter financial planning tools and apps for budgeting and saving",
+        "archetype": "plain",
+        "score": 80.42,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "winter-friendly indoor plants that improve air quality and mood",
+    "topic": "winter-friendly indoor plants that improve air quality and mood",
+    "category": "home_and_kitchen",
+    "audience": "urban dwellers and plant enthusiasts looking to enhance indoor environments during winter",
+    "file": "site/src/content/posts/2026-01-14-winter-friendly-indoor-plants-that-improve-air-quality-and-mood.md",
+    "product_count": 7,
+    "heroImage": "/images/posts/2026-01-14-winter-friendly-indoor-plants-that-improve-air-quality-and-mood/hero.webp",
+    "word_count_before": 382,
+    "word_count_after": 1298,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 100,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 135,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 130,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 551,
+        "notes": "Filled 7 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter-friendly indoor plants that improve air quality and mood",
+        "archetype": "plain",
+        "score": 93.86,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "immune-boosting supplements and wellness products for winter health",
+    "topic": "immune-boosting supplements and wellness products for winter health",
+    "category": "health_and_fitness",
+    "audience": "health-conscious adults looking to maintain wellness during winter",
+    "file": "site/src/content/posts/2026-01-14-immune-boosting-supplements-and-wellness-products-for-winter-health.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-immune-boosting-supplements-and-wellness-products-for-winter-health/hero.webp",
+    "word_count_before": 429,
+    "word_count_after": 1510,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 103,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 126,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 167,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 685,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "immune-boosting supplements and wellness products for winter health",
+        "archetype": "plain",
+        "score": 76.5,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "winter-friendly pet care products for indoor comfort and health",
+    "topic": "winter-friendly pet care products for indoor comfort and health",
+    "category": "pets",
+    "audience": "pet owners in cold climates looking to improve their pets' winter comfort and health",
+    "file": "site/src/content/posts/2026-01-14-winter-friendly-pet-care-products-for-indoor-comfort-and-health.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-winter-friendly-pet-care-products-for-indoor-comfort-and-health/hero.webp",
+    "word_count_before": 438,
+    "word_count_after": 1483,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 113,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 117,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 147,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 668,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter-friendly pet care products for indoor comfort and health",
+        "archetype": "plain",
+        "score": 91.38,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title": "Choosing winter layering clothing options for toddlers",
+    "topic": "winter layering clothing options for toddlers",
+    "category": "parenting_and_family",
+    "audience": "parents of young children",
+    "file": "site/src/content/posts/2026-01-14-choosing-winter-layering-clothing-options-for-toddlers.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-choosing-winter-layering-clothing-options-for-toddlers/hero.webp",
+    "word_count_before": 429,
+    "word_count_after": 1399,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 86,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 109,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 166,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 609,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "Choosing winter layering clothing options for toddlers",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Picking winter layering clothing options for toddlers",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "winter layering clothing options for toddlers",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title_initial": "winter travel accessories for cold weather comfort and safety",
+    "topic": "winter travel accessories for cold weather comfort and safety",
+    "category": "outdoors_and_travel",
+    "audience": "travelers and outdoor enthusiasts preparing for winter trips",
+    "file": "site/src/content/posts/2026-01-14-winter-travel-accessories-for-cold-weather-comfort-and-safety.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-14-winter-travel-accessories-for-cold-weather-comfort-and-safety/hero.webp",
+    "word_count_before": 424,
+    "word_count_after": 1401,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 81,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 102,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 158,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 636,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter travel accessories for cold weather comfort and safety",
+        "archetype": "plain",
+        "score": 98.07,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      },
+      {
+        "title": "Picking winter travel accessories for cold weather comfort and safety",
+        "archetype": "choosing",
+        "score": 74.67,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "title_initial": "financial tools and apps for organizing tax documents and deductions",
+    "topic": "financial tools and apps for organizing tax documents and deductions",
+    "category": "finance_and_productivity",
+    "audience": "US taxpayers preparing for tax season looking to streamline their filing process",
+    "file": "site/src/content/posts/2026-01-14-financial-tools-and-apps-for-organizing-tax-documents-and-deductions.md",
+    "product_count": 9,
+    "heroImage": "/images/posts/2026-01-14-financial-tools-and-apps-for-organizing-tax-documents-and-deductions/hero.webp",
+    "word_count_before": 442,
+    "word_count_after": 1496,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 88,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 108,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 160,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 698,
+        "notes": "Filled 9 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "financial tools and apps for organizing tax documents and deductions",
+        "archetype": "plain",
+        "score": 76.38,
+        "reasons": [
+          "Primary keyword match",
+          "Somewhat similar to existing title"
+        ]
+      }
+    ]
+  },
+  {
+    "date": "2026-01-15",
+    "title_initial": "winter-friendly home fragrance and humidifier combinations for cozy indoor environments",
+    "topic": "winter-friendly home fragrance and humidifier combinations for cozy indoor environments",
+    "category": "home_and_kitchen",
+    "audience": "homeowners and renters looking to enhance indoor comfort during cold months",
+    "file": "site/src/content/posts/2026-01-15-winter-friendly-home-fragrance-and-humidifier-combinations-for-cozy-indoor-environments.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-15-winter-friendly-home-fragrance-and-humidifier-combinations-for-cozy-indoor-environments/hero.webp",
+    "word_count_before": 441,
+    "word_count_after": 1471,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 90,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 131,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 165,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 644,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": []
+  },
+  {
+    "date": "2026-01-15",
+    "title_initial": "immune-boosting supplements and wellness products for winter health",
+    "topic": "immune-boosting supplements and wellness products for winter health",
+    "category": "health_and_fitness",
+    "audience": "adults interested in maintaining health during winter months",
+    "file": "site/src/content/posts/2026-01-15-immune-boosting-supplements-and-wellness-products-for-winter-health.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-15-immune-boosting-supplements-and-wellness-products-for-winter-health/hero.webp",
+    "word_count_before": 396,
+    "word_count_after": 1462,
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 89,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 127,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 159,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 691,
+        "notes": "Filled 8 product writeups (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "immune-boosting supplements and wellness products for winter health",
+        "archetype": "plain",
+        "score": 64.0,
+        "reasons": [
+          "Primary keyword match",
+          "Very similar to existing title"
+        ]
+      }
+    ]
   }
 ]

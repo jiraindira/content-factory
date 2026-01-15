@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+import re
+from typing import Any
 
 from agents.base import BaseAgent
 from agents.llm_client import LLMClient
@@ -13,6 +14,23 @@ from schemas.depth import (
     RewriteMode,
 )
 from styles.site_style import get_style_profile
+
+
+def normalize_markdown_bullets(text: str) -> str:
+    """
+    Ensure '- ' bullets start on their own lines.
+    Fixes cases where the model outputs: 'Sentence - bullet - bullet'
+    """
+    s = (text or "").strip()
+
+    # Newline before any " - " that looks like a bullet marker.
+    # This is intentionally conservative: it only targets " - " (space-dash-space).
+    s = re.sub(r"(?<!\n)\s-\s", "\n- ", s)
+
+    # Cleanup: prevent massive blank runs
+    s = re.sub(r"\n{3,}", "\n\n", s)
+
+    return s.strip()
 
 
 def estimate_word_count(text: str) -> int:
@@ -30,45 +48,11 @@ def clamp_words(text: str, max_words: int) -> str:
     return " ".join(words[:max_words]).strip() + "…"
 
 
-def has_section(markdown: str, heading: str) -> bool:
-    return f"## {heading}".strip() in (markdown or "")
-
-
-def append_section(markdown: str, new_section_md: str) -> str:
-    md = markdown or ""
-    if not md.endswith("\n"):
-        md += "\n"
-    return md + "\n" + new_section_md.strip() + "\n"
-
-
-def insert_section_after(markdown: str, after_heading: str, new_section_md: str) -> str:
-    md = markdown or ""
-    after = f"## {after_heading}"
-    if after not in md:
-        return append_section(md, new_section_md)
-
-    idx = md.find(after)
-    if idx == -1:
-        return append_section(md, new_section_md)
-
-    next_idx = md.find("\n## ", idx + len(after))
-    if next_idx == -1:
-        if not md.endswith("\n"):
-            md += "\n"
-        return md + "\n" + new_section_md.strip() + "\n"
-
-    before = md[:next_idx].rstrip() + "\n\n"
-    after_part = md[next_idx:].lstrip("\n")
-    return before + new_section_md.strip() + "\n\n" + after_part
-
-
-def render_h2(heading: str, body: str) -> str:
-    return f"## {heading}\n\n{body.strip()}\n"
-
-
-def _contains_any(text: str, terms: list[str]) -> bool:
-    t = (text or "").lower()
-    return any(term.lower() in t for term in terms if term and term.strip())
+def _env_flag(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _sanitize_text(text: str, banned_phrases: list[str]) -> str:
@@ -84,25 +68,68 @@ def _sanitize_text(text: str, banned_phrases: list[str]) -> str:
     return " ".join(out.split()).strip()
 
 
-def _env_flag(name: str, default: bool = True) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+# -------------------------
+# Placeholder helpers
+# -------------------------
+
+INTRO_TOKEN = "{{INTRO}}"
+HOW_TOKEN = "{{HOW_WE_CHOSE}}"
+ALT_TOKEN = "{{ALTERNATIVES}}"
+
+PICK_RE = re.compile(r"\{\{PICK:([^\}]+)\}\}")
+
+
+def _has_placeholder(md: str, token: str) -> bool:
+    return token in (md or "")
+
+
+def _replace_placeholder(md: str, token: str, replacement: str) -> str:
+    # Replace exactly once; if the token appears multiple times, that’s a structural bug.
+    return (md or "").replace(token, replacement.strip(), 1)
+
+
+def _extract_pick_ids_in_order(md: str) -> list[str]:
+    return [m.group(1).strip() for m in PICK_RE.finditer(md or "") if m.group(1).strip()]
+
+
+def _replace_pick_placeholder(md: str, pick_id: str, replacement: str) -> str:
+    token = f"{{{{PICK:{pick_id}}}}}"
+    return (md or "").replace(token, replacement.strip(), 1)
+
+
+def _extract_frontmatter_value(md: str, key: str) -> str:
+    """
+    Minimal YAML frontmatter reader for simple key: "value" lines.
+    We keep it deterministic and avoid full YAML parsing.
+    """
+    text = md or ""
+    stripped = text.lstrip()
+    if not stripped.startswith("---"):
+        return ""
+    # find end fence
+    start = text.find("---")
+    end = text.find("\n---", start + 3)
+    if end == -1:
+        return ""
+    fm = text[start : end + 4]
+    # match key: "..."
+    pat = re.compile(rf'^{re.escape(key)}:\s*"(.*)"\s*$', re.MULTILINE)
+    m = pat.search(fm)
+    return (m.group(1).strip() if m else "")
 
 
 class DepthExpansionAgent(BaseAgent):
     """
-    DepthExpansionAgent (refactored into 2 passes)
+    DepthExpansionAgent (placeholder-driven)
 
-    PASS 1: AUTHORING (per-section)
-      - Writes/re-writes each module section body.
-      - In upgrade mode, uses LLM for authoring.
-      - In repair/preserve, uses deterministic profile fallbacks.
+    PASS 1: AUTHORING
+      - Generates content for placeholders:
+        {{INTRO}}, {{HOW_WE_CHOSE}}, {{PICK:<id>}}..., {{ALTERNATIVES}}
+      - Replaces placeholders in-place.
 
-    PASS 2: EDITING (whole-doc)
-      - Optional LLM sweep to improve flow/formatting/voice consistency.
-      - Preserves YAML frontmatter, the products JSON, and all URLs.
+    PASS 2: EDITING (optional)
+      - Whole-doc sweep for flow/formatting/voice consistency.
+      - Preserves YAML frontmatter and does not alter URLs.
       - Does not add testing claims.
       - Controlled by env DEPTH_ENABLE_EDIT_PASS (default: on).
     """
@@ -124,7 +151,7 @@ class DepthExpansionAgent(BaseAgent):
         applied: list[AppliedModule] = []
 
         # -------------------------
-        # PASS 1: AUTHORING
+        # PASS 1: AUTHORING (placeholders)
         # -------------------------
         for module in inp.modules:
             if not module.enabled:
@@ -133,20 +160,14 @@ class DepthExpansionAgent(BaseAgent):
             mode: RewriteMode = module.rewrite_mode or inp.rewrite_mode
             expanded_before = expanded
 
-            if module.name == "why_this_list":
-                expanded, meta = self._apply_why_this_list(inp, expanded, module, profile, mode)
-            elif module.name == "quick_picks":
-                expanded, meta = self._apply_quick_picks(inp, expanded, module, profile, mode)
+            if module.name == "intro":
+                expanded, meta = self._apply_intro(inp, expanded, module, profile, mode)
             elif module.name == "how_we_chose":
-                expanded, meta = self._apply_how_we_chose(inp, expanded, module, profile, mode)
-            elif module.name == "buyers_guide":
-                expanded, meta = self._apply_buyers_guide(inp, expanded, module, profile, mode)
-            elif module.name == "faqs":
-                expanded, meta = self._apply_faqs(inp, expanded, module, profile, mode)
+                expanded, meta = self._apply_how_we_chose_placeholder(inp, expanded, module, profile, mode)
+            elif module.name == "product_writeups":
+                expanded, meta = self._apply_product_writeups(inp, expanded, module, profile, mode)
             elif module.name == "alternatives":
-                expanded, meta = self._apply_alternatives(inp, expanded, module, profile, mode)
-            elif module.name == "care_and_maintenance":
-                expanded, meta = self._apply_care_and_maintenance(inp, expanded, module, profile, mode)
+                expanded, meta = self._apply_alternatives_placeholder(inp, expanded, module, profile, mode)
             else:
                 continue
 
@@ -162,17 +183,17 @@ class DepthExpansionAgent(BaseAgent):
             if (estimate_word_count(expanded) - before_wc) >= inp.max_added_words:
                 break
 
+        # Safety: never ship raw placeholders
+        expanded = self._final_placeholder_safety(expanded)
+
         # -------------------------
         # PASS 2: EDITING (optional)
         # -------------------------
         enable_edit_pass = _env_flag("DEPTH_ENABLE_EDIT_PASS", default=True)
-
-        # Only run edit pass when we're explicitly in upgrade mode, because it’s a "voice + flow" editor.
-        # Also avoid running if we already hit max_added_words.
         added_so_far = estimate_word_count(expanded) - before_wc
+
         if enable_edit_pass and inp.rewrite_mode == "upgrade" and added_so_far < inp.max_added_words:
             edited = self._edit_pass(inp=inp, md=expanded, profile=profile, category=category)
-            # Guard against accidental length bloat:
             if estimate_word_count(edited) - before_wc <= inp.max_added_words:
                 if edited.strip() != expanded.strip():
                     expanded = normalize_ws(edited)
@@ -196,6 +217,24 @@ class DepthExpansionAgent(BaseAgent):
         )
         return out.to_dict()
 
+    def _final_placeholder_safety(self, md: str) -> str:
+        """
+        Ensure we never publish raw placeholder tokens.
+        Deterministic fallbacks only.
+        """
+        out = md or ""
+        if INTRO_TOKEN in out:
+            out = out.replace(INTRO_TOKEN, "A short, practical guide to the picks below.", 1)
+        if HOW_TOKEN in out:
+            out = out.replace(HOW_TOKEN, "Everything here was chosen to be practical and easy to use.", 1)
+        if ALT_TOKEN in out:
+            out = out.replace(
+                ALT_TOKEN, "If none of these fit, consider a simpler or cheaper version of the same idea.", 1
+            )
+        # PICK placeholders: remove any remaining with a neutral line
+        out = PICK_RE.sub("A practical option for this guide. (Details coming soon.)", out)
+        return out
+
     # -------------------------
     # Category inference
     # -------------------------
@@ -212,73 +251,19 @@ class DepthExpansionAgent(BaseAgent):
         return "general"
 
     # -------------------------
-    # Section extraction/replace
+    # LLM authoring helpers
     # -------------------------
 
-    def _extract_h2_body(self, md: str, heading: str) -> str:
-        marker = f"## {heading}"
-        if marker not in md:
-            return ""
-        start = md.find(marker)
-        body_start = start + len(marker)
-        next_start = md.find("\n## ", body_start)
-        if next_start == -1:
-            return md[body_start:].strip()
-        return md[body_start:next_start].strip()
-
-    def _replace_h2_section(self, md: str, heading: str, new_section_md: str) -> str:
-        marker = f"## {heading}"
-        if marker not in md:
-            return md
-        start = md.find(marker)
-        next_start = md.find("\n## ", start + len(marker))
-        if next_start == -1:
-            return md[:start].rstrip() + "\n\n" + new_section_md.strip() + "\n"
-        return md[:start].rstrip() + "\n\n" + new_section_md.strip() + "\n\n" + md[next_start:].lstrip("\n")
-
-    # -------------------------
-    # Rewrite decision
-    # -------------------------
-
-    def _should_rewrite_existing(self, md: str, heading: str, mode: RewriteMode) -> bool:
-        if mode == "preserve":
-            return False
-        if mode == "upgrade":
-            return True
-
-        agent_markers = [
-            "category rotation",
-            "affiliate",
-            "commercial intent",
-            "saturated",
-            "strong affiliate market",
-            "fits category rotation",
-            "audience:",
-            "rationale:",
-        ]
-        boilerplate_markers = [
-            "reduce regret",
-            "feature-rich",
-            "manufacturer instructions",
-        ]
-        section_text = self._extract_h2_body(md, heading)
-        return _contains_any(section_text, agent_markers) or _contains_any(section_text, boilerplate_markers)
-
-    # -------------------------
-    # PASS 1: AUTHORING helpers
-    # -------------------------
-
-    def _llm_author_section(
+    def _llm_author(
         self,
         *,
-        heading: str,
         category: str,
         profile: dict,
         inp: DepthExpansionInput,
-        module: ExpansionModuleSpec,
-        existing_text: str,
+        max_words: int,
         intent: str,
         format_hint: str = "",
+        context: str = "",
     ) -> str:
         banned = profile.get("banned_phrases", []) or []
         forbidden = profile.get("forbidden_terms", []) or []
@@ -286,32 +271,30 @@ class DepthExpansionAgent(BaseAgent):
         golden = (profile.get("golden_post_excerpt") or "").strip()
 
         products = inp.products or []
-        product_bullets = "\n".join([f"- {p.get('title','')}: {p.get('description','')}" for p in products[:6]])
+        product_bullets = "\n".join([f"- {p.get('title','')}: {p.get('description','')}" for p in products[:8]])
 
         system = (
-            "You are writing a blog buying guide section in a personal, journal-like voice. "
-            "Sound like a real person who has done too much scrolling and wants to save the reader time. "
-            "Avoid corporate SEO tone."
+            "You are writing a blog buying guide in a human, lightly witty voice. "
+            "Be concise. Avoid corporate SEO tone. Be specific and practical."
         )
 
         user = f"""
-Write the section body for: "{heading}"
-
-CATEGORY: {category}
-
 INTENT:
 {intent}
+
+CATEGORY: {category}
 
 STYLE REFERENCE (do NOT copy verbatim, just match the vibe):
 {golden if golden else "(none)"}
 
 CONSTRAINTS:
-- Relatable, lightly witty, specific.
+- Slightly quirky/observational, but not long-winded.
 - No hype. No “best ever”. No exaggerated promises.
 - Do NOT claim hands-on testing.
-- Keep it skimmable and human.
-- Output ONLY the section body text (no heading).
-- Max about {module.max_words} words.
+- Do NOT invent product features beyond what is implied by name/description.
+- Keep it skimmable.
+- Output ONLY the requested content (no headings unless asked).
+- Max about {max_words} words.
 
 BANNED PHRASES (avoid):
 {", ".join(banned) if banned else "(none)"}
@@ -322,11 +305,11 @@ FORBIDDEN TERMS (do not include):
 PREFERRED TERMS (use only if natural):
 {", ".join(preferred) if preferred else "(none)"}
 
-EXISTING TEXT (rewrite/improve if present):
-{existing_text.strip() if existing_text.strip() else "(none)"}
-
-PRODUCT CONTEXT (don’t list them all unless asked):
+PRODUCT CONTEXT:
 {product_bullets if product_bullets.strip() else "(no products provided)"}
+
+ADDITIONAL CONTEXT:
+{context.strip() if context.strip() else "(none)"}
 
 {format_hint}
 """.strip()
@@ -336,35 +319,29 @@ PRODUCT CONTEXT (don’t list them all unless asked):
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            temperature=0.2,  # will be ignored if model doesn't support
-            seed=1337,        # will be ignored if SDK/model doesn't support
+            temperature=0.2,
+            seed=1337,
             reasoning_effort="low",
         )
 
         text = _sanitize_text(text, banned)
-        text = clamp_words(text, module.max_words)
+        text = clamp_words(text, max_words)
         return text.strip()
 
     # -------------------------
-    # PASS 2: EDITING
+    # PASS 2: Editing
     # -------------------------
 
     def _split_frontmatter(self, md: str) -> tuple[str, str]:
-        """
-        Returns (frontmatter, body). If no frontmatter, frontmatter="" and body=md.
-        """
         text = md or ""
         stripped = text.lstrip()
         if not stripped.startswith("---"):
             return "", text
 
-        # Find the closing frontmatter fence
-        # We assume YAML frontmatter starts at top.
         start = text.find("---")
         end = text.find("\n---", start + 3)
         if end == -1:
             return "", text
-
         end2 = text.find("\n", end + 4)
         if end2 == -1:
             return "", text
@@ -374,17 +351,6 @@ PRODUCT CONTEXT (don’t list them all unless asked):
         return fm, body
 
     def _edit_pass(self, *, inp: DepthExpansionInput, md: str, profile: dict, category: str) -> str:
-        """
-        Whole-document editor sweep.
-
-        Hard constraints:
-          - Preserve YAML frontmatter verbatim.
-          - Preserve products JSON block verbatim (frontmatter already contains it).
-          - Do NOT change URLs.
-          - Keep existing H2 section headings (don’t rename them).
-          - Do not add testing claims.
-          - Keep output markdown.
-        """
         banned = profile.get("banned_phrases", []) or []
         forbidden = profile.get("forbidden_terms", []) or []
         preferred = profile.get("preferred_terms", []) or []
@@ -392,10 +358,9 @@ PRODUCT CONTEXT (don’t list them all unless asked):
 
         frontmatter, body = self._split_frontmatter(md)
 
-        # Editor is only allowed to touch the BODY.
         system = (
-            "You are a sharp but kind editor. You polish blog posts to feel human and readable. "
-            "You fix formatting, flow, and repetition without changing facts."
+            "You are a sharp but kind editor. You polish posts to feel human and readable. "
+            "You tighten repetition and improve flow without changing meaning."
         )
 
         user = f"""
@@ -403,16 +368,16 @@ You are editing ONLY the markdown BODY of a blog post.
 
 GOALS:
 - Improve flow and readability.
-- Make the voice feel consistently personal/journal-like.
-- Fix awkward bullet formatting (ensure bullets are on separate lines).
-- Reduce repetition and bland filler.
+- Keep the voice personal/lightly witty, but concise.
+- Ensure bullets are properly formatted (one per line).
+- Reduce repetition and filler.
 - Keep it skimmable.
 
-HARD RULES (do not break these):
+HARD RULES:
 - DO NOT change YAML frontmatter (you won't see it).
 - DO NOT change any URLs.
 - DO NOT add claims of hands-on testing.
-- DO NOT rename existing H2 headings (keep the same "## ..." headings).
+- DO NOT add new sections or headings beyond what exists.
 - Do not invent product features.
 - Output ONLY the edited markdown BODY (no frontmatter).
 
@@ -421,13 +386,13 @@ CATEGORY: {category}
 STYLE REFERENCE (do NOT copy verbatim, just match vibe):
 {golden if golden else "(none)"}
 
-BANNED PHRASES (avoid):
+BANNED PHRASES:
 {", ".join(banned) if banned else "(none)"}
 
-FORBIDDEN TERMS (do not include):
+FORBIDDEN TERMS:
 {", ".join(forbidden) if forbidden else "(none)"}
 
-PREFERRED TERMS (use only if natural):
+PREFERRED TERMS:
 {", ".join(preferred) if preferred else "(none)"}
 
 MARKDOWN BODY TO EDIT:
@@ -439,426 +404,241 @@ MARKDOWN BODY TO EDIT:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            temperature=0.2,  # tolerated client will drop if unsupported
+            temperature=0.2,
             seed=1337,
             reasoning_effort="low",
         )
 
         edited_body = _sanitize_text(edited_body, banned)
+        edited_body = normalize_markdown_bullets(edited_body)
         edited_body = normalize_ws(edited_body)
 
-        # Re-attach frontmatter exactly as-is
         if frontmatter:
             return frontmatter.rstrip() + "\n\n" + edited_body.lstrip("\n")
         return edited_body
 
     # -------------------------
-    # Modules (AUTHORING)
+    # Placeholder modules
     # -------------------------
 
-    def _apply_why_this_list(self, inp, md, module, profile, mode):
-        heading = "Why this list"
+    def _apply_intro(
+        self,
+        inp: DepthExpansionInput,
+        md: str,
+        module: ExpansionModuleSpec,
+        profile: dict,
+        mode: RewriteMode,
+    ):
         category = self._infer_category_from_draft(inp)
+        if not _has_placeholder(md, INTRO_TOKEN):
+            return md, {"added_words_estimate": 0, "notes": "INTRO placeholder not found; skipped."}
 
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Set the scene for why this guide exists. Make it personal and relatable. 1–3 short paragraphs.",
-                )
-                if mode == "upgrade"
-                else profile.get("why_this_list_body", "")
-            )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
+        if mode != "upgrade":
+            title = _extract_frontmatter_value(md, "title") or "this guide"
+            audience = _extract_frontmatter_value(md, "audience")
+            base = f"This guide covers {title.lower()}."
+            if audience:
+                base += f" It’s for {audience.strip()}."
+            base = clamp_words(base, module.max_words)
+            new_md = _replace_placeholder(md, INTRO_TOKEN, base)
             return new_md, {
                 "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
+                "notes": f"Filled INTRO ({mode}).",
             }
 
-        body = (
-            self._llm_author_section(
-                heading=heading,
-                category=category,
-                profile=profile,
-                inp=inp,
-                module=module,
-                existing_text="",
-                intent="Set the scene for why this guide exists. Make it personal and relatable. 1–3 short paragraphs.",
-            )
-            if mode == "upgrade"
-            else profile.get("why_this_list_body", "")
+        title = _extract_frontmatter_value(md, "title")
+        audience = _extract_frontmatter_value(md, "audience")
+        context = f'TITLE: "{title}"\nAUDIENCE: "{audience}"'
+        intent = (
+            "Write a short intro (3–4 sentences). Situational, lightly funny/observational, not dry. "
+            "Promise a short practical list. Do not mention 'affiliate' or 'SEO'."
         )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = insert_section_after(md, "Why this list", section)
+
+        text = self._llm_author(
+            category=category,
+            profile=profile,
+            inp=inp,
+            max_words=module.max_words,
+            intent=intent,
+            context=context,
+        )
+        new_md = _replace_placeholder(md, INTRO_TOKEN, text)
         return new_md, {
             "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
+            "notes": "Filled INTRO (upgrade).",
         }
 
-    def _apply_how_we_chose(self, inp, md, module, profile, mode):
-        heading = "How we chose"
+    def _apply_how_we_chose_placeholder(
+        self,
+        inp: DepthExpansionInput,
+        md: str,
+        module: ExpansionModuleSpec,
+        profile: dict,
+        mode: RewriteMode,
+    ):
         category = self._infer_category_from_draft(inp)
-        format_hint = "FORMAT: 1 short intro paragraph, then 4–6 bullet points."
+        if not _has_placeholder(md, HOW_TOKEN):
+            return md, {"added_words_estimate": 0, "notes": "HOW_WE_CHOSE placeholder not found; skipped."}
 
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Explain selection criteria like a real person. Keep it practical and specific.",
-                    format_hint=format_hint,
-                )
-                if mode == "upgrade"
-                else self._render_how_we_chose_body(inp, module, profile)
+        if mode != "upgrade":
+            body = "\n".join(
+                [
+                    "Everything here was chosen to be practical and low-fuss:",
+                    "",
+                    "- Works in real homes (space and cleanup matter).",
+                    "- Easy to set up and put away.",
+                    "- Holds up to repeat use.",
+                    "- Useful for the audience and season.",
+                ]
             )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
+            body = clamp_words(body, module.max_words)
+            body = normalize_markdown_bullets(body)
+            new_md = _replace_placeholder(md, HOW_TOKEN, body)
             return new_md, {
                 "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
+                "notes": f"Filled HOW_WE_CHOSE ({mode}).",
             }
 
-        body = (
-            self._llm_author_section(
-                heading=heading,
-                category=category,
-                profile=profile,
-                inp=inp,
-                module=module,
-                existing_text="",
-                intent="Explain selection criteria like a real person. Keep it practical and specific.",
-                format_hint=format_hint,
-            )
-            if mode == "upgrade"
-            else self._render_how_we_chose_body(inp, module, profile)
+        title = _extract_frontmatter_value(md, "title")
+        audience = _extract_frontmatter_value(md, "audience")
+        context = f'TITLE: "{title}"\nAUDIENCE: "{audience}"'
+        intent = (
+            "Write 'How this list was chosen' as a short intro sentence plus 4–6 bullet points. "
+            "Bullets should be concrete and practical. Keep it brief and human."
         )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = insert_section_after(md, "Why this list", section)
+        format_hint = "FORMAT:\n- One short intro sentence\n- Then 4–6 bullets, one per line"
+
+        text = self._llm_author(
+            category=category,
+            profile=profile,
+            inp=inp,
+            max_words=module.max_words,
+            intent=intent,
+            format_hint=format_hint,
+            context=context,
+        )
+        text = normalize_markdown_bullets(text)
+        new_md = _replace_placeholder(md, HOW_TOKEN, text)
         return new_md, {
             "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
+            "notes": "Filled HOW_WE_CHOSE (upgrade).",
         }
 
-    def _render_how_we_chose_body(self, inp, module, profile) -> str:
-        intro = (profile.get("how_we_chose_intro") or "").strip()
-        bullets = profile.get("how_we_chose_bullets", []) or []
+    def _apply_product_writeups(
+        self,
+        inp: DepthExpansionInput,
+        md: str,
+        module: ExpansionModuleSpec,
+        profile: dict,
+        mode: RewriteMode,
+    ):
+        category = self._infer_category_from_draft(inp)
+        pick_ids = _extract_pick_ids_in_order(md)
+        if not pick_ids:
+            return md, {"added_words_estimate": 0, "notes": "No PICK placeholders found; skipped."}
 
-        note = ""
-        if inp.forbid_claims_of_testing:
-            note = (
-                "\n\n*Note: These recommendations are based on product details, broad review patterns, and common "
-                "buyer criteria (not hands-on testing).*"
-            )
+        products = list(inp.products or [])
+        if not products:
+            return md, {"added_words_estimate": 0, "notes": "No products provided; skipped."}
 
-        body = intro + "\n\n" + "\n".join([f"- {b}" for b in bullets]) + note
-        body = _sanitize_text(body, profile.get("banned_phrases", []))
-        return clamp_words(body, module.max_words)
+        count = min(len(pick_ids), len(products))
+        per_pick_budget = max(45, min(120, int(module.max_words / max(1, count))))
 
-    def _apply_quick_picks(self, inp, md, module, profile, mode):
-        heading = "Quick picks"
-        if has_section(md, heading):
-            return md, {"added_words_estimate": 0, "notes": f"{heading} present; skipped."}
-
-        prods = list(inp.products or [])
-        if not prods:
-            return md, {"added_words_estimate": 0, "notes": "No products provided; skipped quick picks."}
-
-        intro_lines = profile.get("quick_picks_intro_lines", []) or []
-        lines = [ln for ln in intro_lines if (ln or "").strip()]
-
-        for p in prods[:6]:
-            title = (p.get("title") or "").strip() or "A useful pick"
+        expanded = md
+        for i in range(count):
+            pick_id = pick_ids[i]
+            p = products[i]
+            title = (p.get("title") or "").strip()
             desc = (p.get("description") or "").strip()
-            one = desc.split(".")[0].strip() if desc else "A practical pick that’s easy to use and easy to keep."
-            lines.append(f"- **{title}:** {one}")
 
-        body = clamp_words(_sanitize_text("\n".join(lines).strip(), profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = insert_section_after(md, "How we chose" if has_section(md, "How we chose") else "Why this list", section)
-        return new_md, {
-            "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading}.",
-        }
+            if mode != "upgrade":
+                fallback = desc or "A practical pick that fits the theme of this guide."
+                fallback = clamp_words(fallback, per_pick_budget)
+                expanded = _replace_pick_placeholder(expanded, pick_id, fallback)
+                continue
 
-    def _apply_buyers_guide(self, inp, md, module, profile, mode):
-        heading = "Buyer’s guide"
-        category = self._infer_category_from_draft(inp)
-        format_hint = "FORMAT: 1 short intro sentence, then 5–7 bullet questions."
-
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Help the reader choose with practical questions that feel real.",
-                    format_hint=format_hint,
-                )
-                if mode == "upgrade"
-                else self._render_buyers_guide_body(module, profile)
+            context = f'PRODUCT: "{title}"\nKNOWN DESCRIPTION: "{desc}"'
+            intent = (
+                "Write ONE paragraph (2–4 sentences). "
+                "Sentence 1: why it’s a good fit for this guide. "
+                "Sentence 2: what it’s best for in real life. "
+                "Sentence 3 (optional): a clear tradeoff or who should skip it. "
+                "No testing claims. No hype. No made-up specs."
             )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
-            return new_md, {
-                "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
-            }
 
-        body = (
-            self._llm_author_section(
-                heading=heading,
+            text = self._llm_author(
                 category=category,
                 profile=profile,
                 inp=inp,
-                module=module,
-                existing_text="",
-                intent="Help the reader choose with practical questions that feel real.",
-                format_hint=format_hint,
+                max_words=per_pick_budget,
+                intent=intent,
+                context=context,
             )
-            if mode == "upgrade"
-            else self._render_buyers_guide_body(module, profile)
-        )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = append_section(md, section)
-        return new_md, {
-            "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
+            expanded = _replace_pick_placeholder(expanded, pick_id, text)
+
+        for j in range(count, len(pick_ids)):
+            expanded = _replace_pick_placeholder(
+                expanded,
+                pick_ids[j],
+                "A practical option for this guide. (Details coming soon.)",
+            )
+
+        return expanded, {
+            "added_words_estimate": max(0, estimate_word_count(expanded) - estimate_word_count(md)),
+            "notes": f"Filled {count} product writeups ({mode}).",
         }
 
-    def _render_buyers_guide_body(self, module, profile) -> str:
-        intro = (profile.get("buyers_guide_intro") or "").strip()
-        qs = list(profile.get("buyers_guide_questions", []) or [])[:8]
-        lines = [intro, ""]
-        lines.extend([f"- **{q}**" for q in qs])
-        body = _sanitize_text("\n".join(lines).strip(), profile.get("banned_phrases", []))
-        return clamp_words(body, module.max_words)
-
-    def _apply_faqs(self, inp, md, module, profile, mode):
-        heading = "FAQs"
+    def _apply_alternatives_placeholder(
+        self,
+        inp: DepthExpansionInput,
+        md: str,
+        module: ExpansionModuleSpec,
+        profile: dict,
+        mode: RewriteMode,
+    ):
         category = self._infer_category_from_draft(inp)
-        format_hint = "FORMAT: 3–5 Q&As. Each question bolded. Answers 1–3 sentences."
+        if not _has_placeholder(md, ALT_TOKEN):
+            return md, {"added_words_estimate": 0, "notes": "ALTERNATIVES placeholder not found; skipped."}
 
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Write FAQs that are short, helpful, and grounded. No wild claims.",
-                    format_hint=format_hint,
-                )
-                if mode == "upgrade"
-                else self._render_faqs_body(inp, module, profile)
+        if mode != "upgrade":
+            body = "\n".join(
+                [
+                    "If the main picks aren’t quite right, consider:",
+                    "",
+                    "- A cheaper, simpler version of the same idea.",
+                    "- A smaller option if storage is tight.",
+                    "- A quieter alternative if noise is a problem.",
+                ]
             )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
+            body = clamp_words(body, module.max_words)
+            body = normalize_markdown_bullets(body)
+            new_md = _replace_placeholder(md, ALT_TOKEN, body)
             return new_md, {
                 "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
+                "notes": f"Filled ALTERNATIVES ({mode}).",
             }
 
-        body = (
-            self._llm_author_section(
-                heading=heading,
-                category=category,
-                profile=profile,
-                inp=inp,
-                module=module,
-                existing_text="",
-                intent="Write FAQs that are short, helpful, and grounded. No wild claims.",
-                format_hint=format_hint,
-            )
-            if mode == "upgrade"
-            else self._render_faqs_body(inp, module, profile)
+        title = _extract_frontmatter_value(md, "title")
+        audience = _extract_frontmatter_value(md, "audience")
+        context = f'TITLE: "{title}"\nAUDIENCE: "{audience}"'
+        intent = (
+            "Write a short 'Alternatives worth considering' section: 1 short intro sentence, then 3–5 bullets. "
+            "Focus on real-world constraints (budget, space, noise, simplicity). Keep it brief."
         )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = append_section(md, section)
+        format_hint = "FORMAT:\n- One short intro sentence\n- Then 3–5 bullets, one per line"
+
+        text = self._llm_author(
+            category=category,
+            profile=profile,
+            inp=inp,
+            max_words=module.max_words,
+            intent=intent,
+            format_hint=format_hint,
+            context=context,
+        )
+        text = normalize_markdown_bullets(text)
+        new_md = _replace_placeholder(md, ALT_TOKEN, text)
         return new_md, {
             "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
+            "notes": "Filled ALTERNATIVES (upgrade).",
         }
-
-    def _render_faqs_body(self, inp, module, profile) -> str:
-        faqs = [q.strip() for q in (inp.faqs or []) if q and q.strip()]
-        if not faqs:
-            faqs = list(profile.get("faq_seeds", []) or [])[:6]
-
-        answers = profile.get("faq_answers", {}) or {}
-        default_answer = (profile.get("faq_default_answer") or "").strip()
-
-        blocks: list[str] = []
-        intro = (profile.get("faq_intro") or "").strip()
-        if intro:
-            blocks.append(intro)
-            blocks.append("")
-
-        for q in faqs[:6]:
-            a = answers.get(q, default_answer)
-            blocks.append(f"**{q}**\n\n{a}\n")
-
-        body = _sanitize_text("\n".join(blocks).strip(), profile.get("banned_phrases", []))
-        return clamp_words(body, module.max_words)
-
-    def _apply_alternatives(self, inp, md, module, profile, mode):
-        heading = "Alternatives worth considering"
-        category = self._infer_category_from_draft(inp)
-        format_hint = "FORMAT: 1 short intro, then 3–6 bullets."
-
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Suggest alternative angles (budget, premium, smaller, simpler) with concrete reasons.",
-                    format_hint=format_hint,
-                )
-                if mode == "upgrade"
-                else self._render_alternatives_body(module, profile)
-            )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
-            return new_md, {
-                "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
-            }
-
-        body = (
-            self._llm_author_section(
-                heading=heading,
-                category=category,
-                profile=profile,
-                inp=inp,
-                module=module,
-                existing_text="",
-                intent="Suggest alternative angles (budget, premium, smaller, simpler) with concrete reasons.",
-                format_hint=format_hint,
-            )
-            if mode == "upgrade"
-            else self._render_alternatives_body(module, profile)
-        )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = append_section(md, section)
-        return new_md, {
-            "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
-        }
-
-    def _render_alternatives_body(self, module, profile) -> str:
-        intro = (profile.get("alternatives_intro") or "").strip()
-        tips = list(profile.get("alternatives_tips", []) or [])[:8]
-        lines: list[str] = []
-        if intro:
-            lines.append(intro)
-            lines.append("")
-        lines.extend([f"- {t}" for t in tips])
-        body = _sanitize_text("\n".join(lines).strip(), profile.get("banned_phrases", []))
-        return clamp_words(body, module.max_words)
-
-    def _apply_care_and_maintenance(self, inp, md, module, profile, mode):
-        heading = "Care and maintenance"
-        category = self._infer_category_from_draft(inp)
-        format_hint = "FORMAT: 1 short intro, then 4–7 bullets. Be practical."
-
-        if has_section(md, heading):
-            if not self._should_rewrite_existing(md, heading, mode):
-                return md, {"added_words_estimate": 0, "notes": f"{heading} present; rewrite skipped ({mode})."}
-
-            existing = self._extract_h2_body(md, heading)
-            body = (
-                self._llm_author_section(
-                    heading=heading,
-                    category=category,
-                    profile=profile,
-                    inp=inp,
-                    module=module,
-                    existing_text=existing,
-                    intent="Give practical care tips (cleaning, storage, common mistakes, returns).",
-                    format_hint=format_hint,
-                )
-                if mode == "upgrade"
-                else self._render_care_body(module, profile)
-            )
-            body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-            new_md = self._replace_h2_section(md, heading, render_h2(heading, body))
-            return new_md, {
-                "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-                "notes": f"Rewrote {heading} ({mode}).",
-            }
-
-        body = (
-            self._llm_author_section(
-                heading=heading,
-                category=category,
-                profile=profile,
-                inp=inp,
-                module=module,
-                existing_text="",
-                intent="Give practical care tips (cleaning, storage, common mistakes, returns).",
-                format_hint=format_hint,
-            )
-            if mode == "upgrade"
-            else self._render_care_body(module, profile)
-        )
-        body = clamp_words(_sanitize_text(body, profile.get("banned_phrases", [])), module.max_words)
-        section = render_h2(heading, body)
-        new_md = append_section(md, section)
-        return new_md, {
-            "added_words_estimate": max(0, estimate_word_count(new_md) - estimate_word_count(md)),
-            "notes": f"Added {heading} ({mode}).",
-        }
-
-    def _render_care_body(self, module, profile) -> str:
-        intro = (profile.get("care_intro") or "").strip()
-        tips = list(profile.get("care_tips", []) or [])[:10]
-        lines: list[str] = []
-        if intro:
-            lines.append(intro)
-            lines.append("")
-        lines.extend([f"- {t}" for t in tips])
-        body = _sanitize_text("\n".join(lines).strip(), profile.get("banned_phrases", []))
-        return clamp_words(body, module.max_words)

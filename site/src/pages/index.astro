@@ -10,7 +10,12 @@ import { getTaxonomy } from "../lib/taxonomy";
 const taxonomy = await getTaxonomy();
 
 const posts = await getCollection("posts");
-posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+posts.sort((a, b) => {
+  const t = b.data.publishedAt.getTime() - a.data.publishedAt.getTime();
+  if (t !== 0) return t;
+  // tie-breaker: stable, deterministic (slug is fine)
+  return b.slug.localeCompare(a.slug);
+});
 
 const featured = posts.slice(0, 3);
 const featuredPrimary = featured[0];
