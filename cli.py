@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from generate_blog_post import main
+from archive.scripts.generate_blog_post import main
 
 
 def generate_post() -> None:

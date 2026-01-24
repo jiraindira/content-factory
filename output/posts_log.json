@@ -2490,5 +2490,589 @@
       },
       "mode": "block"
     }
+  },
+  {
+    "date": "2026-01-22",
+    "publishedAt": "2026-01-22T16:33:59Z",
+    "title_initial": "winter layering clothing options for children with sensitive skin",
+    "topic": "winter layering clothing options for children with sensitive skin",
+    "category": "parenting_and_family",
+    "audience": "parents of young children in the UK",
+    "file_failed": "output/failed_posts/2026-01-22-winter-layering-clothing-options-for-children-with-sensitive-skin.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-22-winter-layering-clothing-options-for-children-with-sensitive-skin/hero.webp",
+    "word_count_before": 529,
+    "word_count_after": 1402,
+    "format_id": "top_picks",
+    "affiliate_provider": "amazon_uk",
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 86,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 124,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 151,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 651,
+        "notes": "Filled 8 product writeups (upgrade)."
+      },
+      {
+        "name": "edit_pass",
+        "added_words_estimate": 512,
+        "notes": "Applied whole-document editor pass (upgrade)."
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Intro section appears empty.",
+        "No pick writeups extracted under '## The picks'."
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_EMPTY_INTRO",
+          "level": "error",
+          "message": "Intro section appears empty.",
+          "meta": {}
+        },
+        {
+          "rule_id": "RULE_NO_PICKS_EXTRACTED",
+          "level": "error",
+          "message": "No pick writeups extracted under '## The picks'.",
+          "meta": {}
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 0,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added missing newline after '## Intro' heading",
+      "Moved intro paragraph into the intro section below '## Intro'",
+      "Added pick writeups under '## The picks' section for all product picks",
+      "Ensured proper spacing and paragraph breaks in the intro and picks sections"
+    ],
+    "qa_after_repair": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks. {'missing_pick_numbers': [2, 5]}"
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_MISSING_SKIP_IT_IF",
+          "level": "error",
+          "message": "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
+          "meta": {
+            "missing_pick_numbers": [
+              2,
+              5
+            ]
+          }
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
+  },
+  {
+    "date": "2026-01-22",
+    "publishedAt": "2026-01-22T17:28:30Z",
+    "title_initial": "nutritional supplements and recovery aids for winter fitness routines",
+    "topic": "nutritional supplements and recovery aids for winter fitness routines",
+    "category": "health_and_fitness",
+    "audience": "Adults in the UK focused on maintaining fitness and recovery during colder months",
+    "file": "site/src/content/posts/2026-01-22-nutritional-supplements-and-recovery-aids-for-winter-fitness-routines.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-22-nutritional-supplements-and-recovery-aids-for-winter-fitness-routines/hero.webp",
+    "word_count_before": 515,
+    "word_count_after": 1500,
+    "format_id": "top_picks",
+    "affiliate_provider": "amazon_uk",
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 96,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 118,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 169,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 685,
+        "notes": "Filled 8 product writeups (upgrade)."
+      },
+      {
+        "name": "edit_pass",
+        "added_words_estimate": 602,
+        "notes": "Applied whole-document editor pass (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "nutritional supplements and recovery aids for winter fitness routines",
+        "archetype": "plain",
+        "score": 75.86,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Intro section appears empty.",
+        "No pick writeups extracted under '## The picks'."
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_EMPTY_INTRO",
+          "level": "error",
+          "message": "Intro section appears empty.",
+          "meta": {}
+        },
+        {
+          "rule_id": "RULE_NO_PICKS_EXTRACTED",
+          "level": "error",
+          "message": "No pick writeups extracted under '## The picks'.",
+          "meta": {}
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 0,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added missing newline after '## Intro' heading to fix empty intro section",
+      "Added product writeups under '## The picks' section for all 8 products",
+      "Ensured proper spacing and line breaks for readability",
+      "Corrected escaped single quotes in product names for consistency"
+    ],
+    "qa_after_repair": {
+      "ok": true,
+      "strict": true,
+      "errors": [],
+      "warnings": [],
+      "issues": [],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
+  },
+  {
+    "date": "2026-01-22",
+    "publishedAt": "2026-01-22T22:54:13Z",
+    "title_initial": "winter-friendly indoor plants that improve air quality and mood",
+    "topic": "winter-friendly indoor plants that improve air quality and mood",
+    "category": "home_and_kitchen",
+    "audience": "UK homeowners and renters looking to enhance indoor living spaces during winter",
+    "file": "site/src/content/posts/2026-01-22-winter-friendly-indoor-plants-that-improve-air-quality-and-mood.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-22-winter-friendly-indoor-plants-that-improve-air-quality-and-mood/hero.webp",
+    "word_count_before": 545,
+    "word_count_after": 1361,
+    "format_id": "top_picks",
+    "affiliate_provider": "amazon_uk",
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 89,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 104,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 135,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 658,
+        "notes": "Filled 8 product writeups (upgrade)."
+      },
+      {
+        "name": "edit_pass",
+        "added_words_estimate": 488,
+        "notes": "Applied whole-document editor pass (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter-friendly indoor plants that improve air quality and mood",
+        "archetype": "plain",
+        "score": 76.0,
+        "reasons": [
+          "Primary keyword match",
+          "Very similar to existing title"
+        ]
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Intro section appears empty.",
+        "No pick writeups extracted under '## The picks'."
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_EMPTY_INTRO",
+          "level": "error",
+          "message": "Intro section appears empty.",
+          "meta": {}
+        },
+        {
+          "rule_id": "RULE_NO_PICKS_EXTRACTED",
+          "level": "error",
+          "message": "No pick writeups extracted under '## The picks'.",
+          "meta": {}
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 0,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added missing intro section text after ## Intro heading",
+      "Added pick writeups under ## The picks heading for all products"
+    ],
+    "qa_after_repair": {
+      "ok": true,
+      "strict": true,
+      "errors": [],
+      "warnings": [],
+      "issues": [],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
+  },
+  {
+    "date": "2026-01-22",
+    "publishedAt": "2026-01-22T23:09:02Z",
+    "title_initial": "winter-friendly pet care products for indoor and outdoor animals",
+    "topic": "winter-friendly pet care products for indoor and outdoor animals",
+    "category": "pets",
+    "audience": "pet owners in the UK looking to protect and comfort their animals during colder months",
+    "file": "site/src/content/posts/2026-01-22-winter-friendly-pet-care-products-for-indoor-and-outdoor-animals.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-22-winter-friendly-pet-care-products-for-indoor-and-outdoor-animals/hero.webp",
+    "word_count_before": 522,
+    "word_count_after": 1466,
+    "format_id": "top_picks",
+    "affiliate_provider": "amazon_uk",
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 88,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 115,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 148,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 703,
+        "notes": "Filled 8 product writeups (upgrade)."
+      },
+      {
+        "name": "edit_pass",
+        "added_words_estimate": 593,
+        "notes": "Applied whole-document editor pass (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "winter-friendly pet care products for indoor and outdoor animals",
+        "archetype": "plain",
+        "score": 81.33,
+        "reasons": [
+          "Primary keyword match",
+          "Very similar to existing title"
+        ]
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Intro section appears empty.",
+        "No pick writeups extracted under '## The picks'."
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_EMPTY_INTRO",
+          "level": "error",
+          "message": "Intro section appears empty.",
+          "meta": {}
+        },
+        {
+          "rule_id": "RULE_NO_PICKS_EXTRACTED",
+          "level": "error",
+          "message": "No pick writeups extracted under '## The picks'.",
+          "meta": {}
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 0,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added missing line break after '## Intro' heading",
+      "Added missing line break after intro paragraph to separate it",
+      "Added a second paragraph to the intro to provide content",
+      "Inserted detailed writeups under '## The picks' for all 8 products",
+      "Ensured each pick section has a heading and descriptive text",
+      "Maintained original headings and order",
+      "Fixed spacing issues around headings and paragraphs",
+      "Added line breaks between paragraphs for clarity",
+      "Ensured no placeholders remain in intro or picks",
+      "No changes made to frontmatter or product specs"
+    ],
+    "qa_after_repair": {
+      "ok": true,
+      "strict": true,
+      "errors": [],
+      "warnings": [
+        "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks. {'missing_pick_numbers': [6]}"
+      ],
+      "issues": [
+        {
+          "rule_id": "RULE_MISSING_SKIP_IT_IF",
+          "level": "warning",
+          "message": "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
+          "meta": {
+            "missing_pick_numbers": [
+              6
+            ]
+          }
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
+  },
+  {
+    "date": "2026-01-23",
+    "publishedAt": "2026-01-23T22:03:44Z",
+    "title_initial": "Choosing winter travel accessories for UK weekend getaways",
+    "topic": "winter travel accessories for UK weekend getaways",
+    "category": "outdoors_and_travel",
+    "audience": "UK residents planning short trips during the winter months",
+    "file": "site/src/content/posts/2026-01-23-choosing-winter-travel-accessories-for-uk-weekend-getaways.md",
+    "product_count": 8,
+    "heroImage": "/images/posts/2026-01-23-choosing-winter-travel-accessories-for-uk-weekend-getaways/hero.webp",
+    "word_count_before": 508,
+    "word_count_after": 1466,
+    "format_id": "top_picks",
+    "affiliate_provider": "amazon_uk",
+    "depth_modules_applied": [
+      {
+        "name": "intro",
+        "added_words_estimate": 84,
+        "notes": "Filled INTRO (upgrade)."
+      },
+      {
+        "name": "how_we_chose",
+        "added_words_estimate": 114,
+        "notes": "Filled HOW_WE_CHOSE (upgrade)."
+      },
+      {
+        "name": "alternatives",
+        "added_words_estimate": 154,
+        "notes": "Filled ALTERNATIVES (upgrade)."
+      },
+      {
+        "name": "product_writeups",
+        "added_words_estimate": 662,
+        "notes": "Filled 8 product writeups (upgrade)."
+      },
+      {
+        "name": "edit_pass",
+        "added_words_estimate": 606,
+        "notes": "Applied whole-document editor pass (upgrade)."
+      }
+    ],
+    "title_candidates_top3": [
+      {
+        "title": "Choosing winter travel accessories for UK weekend getaways",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "Picking winter travel accessories for UK weekend getaways",
+        "archetype": "choosing",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      },
+      {
+        "title": "winter travel accessories for UK weekend getaways",
+        "archetype": "plain",
+        "score": 100.0,
+        "reasons": [
+          "Primary keyword match",
+          "Distinct from existing titles"
+        ]
+      }
+    ],
+    "qa_initial": {
+      "ok": false,
+      "strict": true,
+      "errors": [
+        "Intro section appears empty.",
+        "No pick writeups extracted under '## The picks'."
+      ],
+      "warnings": [],
+      "issues": [
+        {
+          "rule_id": "RULE_EMPTY_INTRO",
+          "level": "error",
+          "message": "Intro section appears empty.",
+          "meta": {}
+        },
+        {
+          "rule_id": "RULE_NO_PICKS_EXTRACTED",
+          "level": "error",
+          "message": "No pick writeups extracted under '## The picks'.",
+          "meta": {}
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 0,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    },
+    "repair_attempted": true,
+    "repair_changes": [
+      "Added missing line break after '## Intro' heading",
+      "Inserted pick writeups text under '## The picks' heading for all 8 picks",
+      "Fixed missing space in 'dependable -up' to 'dependable top-up'",
+      "Ensured consistent spacing after headings and paragraphs",
+      "Ensured no empty intro section by moving intro text into it"
+    ],
+    "qa_after_repair": {
+      "ok": true,
+      "strict": true,
+      "errors": [],
+      "warnings": [
+        "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks. {'missing_pick_numbers': [5, 7, 8]}"
+      ],
+      "issues": [
+        {
+          "rule_id": "RULE_MISSING_SKIP_IT_IF",
+          "level": "warning",
+          "message": "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
+          "meta": {
+            "missing_pick_numbers": [
+              5,
+              7,
+              8
+            ]
+          }
+        }
+      ],
+      "metrics": {
+        "placeholders_count": 0,
+        "products_count": 8,
+        "picks_count": 8,
+        "forbidden_testing_hits": 0,
+        "missing_space_after_punct_hits": 0
+      },
+      "mode": "block"
+    }
   }
 ]

@@ -9,27 +9,31 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
-from agents.topic_agent import TopicSelectionAgent
+from agents.affiliate_routing_agent import AffiliateRoutingAgent
+from agents.depth_expansion_agent import DepthExpansionAgent
+from agents.final_title_agent import FinalTitleAgent, FinalTitleConfig
+from agents.image_generation_agent import ImageGenerationAgent
+from agents.post_repair_agent import PostRepairAgent, PostRepairConfig
+from agents.preflight_qa_agent import PreflightQAAgent
 from agents.product_agent import ProductDiscoveryAgent
 from agents.title_optimization_agent import TitleOptimizationAgent
-from agents.depth_expansion_agent import DepthExpansionAgent
-from agents.image_generation_agent import ImageGenerationAgent
-from agents.final_title_agent import FinalTitleAgent, FinalTitleConfig
-from agents.preflight_qa_agent import PreflightQAAgent
-from agents.post_repair_agent import PostRepairAgent, PostRepairConfig
-from agents.affiliate_routing_agent import AffiliateRoutingAgent
+from agents.topic_agent import TopicSelectionAgent
 
 from integrations.openai_adapters import OpenAIImageGenerator, OpenAIJsonLLM
 from pipeline.image_step import generate_hero_image
 
-from schemas.topic import TopicInput
-from schemas.title import TitleOptimizationInput
 from schemas.depth import DepthExpansionInput, ExpansionModuleSpec
 from schemas.post_format import PostFormatId
+from schemas.title import TitleOptimizationInput
+from schemas.topic import TopicInput
 
+from lib.affiliates_config_loader import load_affiliates_config
 from lib.post_formats import get_format_spec
 from lib.topic_overrides import load_topic_override_for_date
-from lib.affiliates_config_loader import load_affiliates_config
+
+# ✅ Catalog + manifest
+from lib.post_manifest import write_post_manifest
+from lib.product_catalog import ProductCatalog
 
 
 ASTRO_POSTS_DIR = Path("site/src/content/posts")
@@ -48,6 +52,9 @@ MAX_REPAIR_ATTEMPTS = 1
 
 DEFAULT_REGION = "UK"
 
+# ✅ Central catalog path
+CATALOG_PATH = Path("output/catalog/manual_product_catalog.json")
+
 
 def slugify(text: str) -> str:
     text = text.lower().strip()
@@ -57,13 +64,15 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
-NORMALIZE_TRANSLATION_TABLE = str.maketrans({
-    "’": "'",
-    "“": '"',
-    "”": '"',
-    "–": "-",
-    "—": "-",
-})
+NORMALIZE_TRANSLATION_TABLE = str.maketrans(
+    {
+        "’": "'",
+        "“": '"',
+        "”": '"',
+        "–": "-",
+        "—": "-",
+    }
+)
 
 
 def normalize_text(s: str) -> str:
@@ -283,17 +292,16 @@ def _run_preflight(
 
 
 def _compile_signal_regex(signals: list[str]) -> re.Pattern[str]:
-    parts = [re.escape(s.strip()) for s in sorted({s for s in signals if (s or "").strip()}, key=len, reverse=True)]
+    parts = [
+        re.escape(s.strip())
+        for s in sorted({s for s in signals if (s or "").strip()}, key=len, reverse=True)
+    ]
     if not parts:
         return re.compile(r"a^")
     return re.compile(r"|".join(parts), re.IGNORECASE)
 
 
 def _infer_category_for_forced_topic(forced_topic: str) -> str:
-    """
-    Minimal, config-driven inference.
-    Uses affiliates.yaml outdoor_gear signals to decide if topic is travel/outdoors.
-    """
     cfg = load_affiliates_config()
     signals = cfg.signal_groups.get("outdoor_gear", [])
     rx = _compile_signal_regex(signals)
@@ -350,7 +358,9 @@ def main():
     FAILED_POSTS_DIR.mkdir(parents=True, exist_ok=True)
 
     post_date = args.date
-    published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    published_at = (
+        datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    )
 
     # 1) Topic (override > CLI topic > agent)
     forced_topic = (args.topic or "").strip() or None
@@ -412,15 +422,17 @@ def main():
     for p in product_models:
         if not product_passes_filter(p):
             continue
-        products.append({
-            "title": normalize_text(p.title),
-            "amazon_search_query": getattr(p, "amazon_search_query", None),
-            "url": str(p.url) if getattr(p, "url", None) is not None else None,
-            "price": str(p.price) if getattr(p, "price", None) is not None else None,
-            "rating": safe_float(getattr(p, "rating", None)),
-            "reviews_count": safe_int(getattr(p, "reviews_count", None)),
-            "description": normalize_text(p.description),
-        })
+        products.append(
+            {
+                "title": normalize_text(p.title),
+                "amazon_search_query": getattr(p, "amazon_search_query", None),
+                "url": str(p.url) if getattr(p, "url", None) is not None else None,
+                "price": str(p.price) if getattr(p, "price", None) is not None else None,
+                "rating": safe_float(getattr(p, "rating", None)),
+                "reviews_count": safe_int(getattr(p, "reviews_count", None)),
+                "description": normalize_text(p.description),
+            }
+        )
 
     products = _dedupe_products(products)
     products = sorted(
@@ -483,19 +495,54 @@ def main():
     file_path = ASTRO_POSTS_DIR / filename
     post_slug = f"{post_date}-{slug}"
 
+    # ✅ Attach pick_id + catalog_key deterministically
+    catalog = ProductCatalog(path=CATALOG_PATH)
+    enriched_products: list[dict] = []
+    for idx, p in enumerate(products):
+        title = normalize_text(p.get("title", "")).strip() or f"Product {idx+1}"
+        pick_id = _make_pick_anchor_id(title, idx)
+        catalog_key = catalog.default_catalog_key(provider=provider_id, title=title)
+        p2 = dict(p)
+        p2["pick_id"] = pick_id
+        p2["catalog_key"] = catalog_key
+        enriched_products.append(p2)
+
+    products = enriched_products
+
+    # ✅ Seed central catalog with skeleton entries for any new products
+    try:
+        created = catalog.ensure_entries_for_products(provider=provider_id, products=products)
+        if created:
+            catalog.save()
+            print(f"📚 Catalog updated: added {created} new product(s) to {CATALOG_PATH}")
+        else:
+            print(f"📚 Catalog unchanged: all products already present in {CATALOG_PATH}")
+    except Exception as e:
+        print("⚠️ Unable to update central product catalog:", e)
+
     # 7) Frontmatter
-    meta_description = f"Curated {topic_category.replace('_', ' ')} picks for {normalize_text(topic_audience)}."
+    meta_description = (
+        f"Curated {topic_category.replace('_', ' ')} picks for {normalize_text(topic_audience)}."
+    )
 
     astro_products: list[dict] = []
     for p in products:
-        astro_products.append({
-            "title": p.get("title") or "",
-            "url": p.get("url") or "https://www.amazon.co.uk",
-            "price": p.get("price") or "—",
-            "rating": float(p.get("rating")) if p.get("rating") is not None else 0.0,
-            "reviews_count": int(p.get("reviews_count")) if p.get("reviews_count") is not None else 0,
-            "description": p.get("description") or "",
-        })
+        astro_products.append(
+            {
+                "pick_id": p.get("pick_id") or "",
+                "catalog_key": p.get("catalog_key") or "",
+                "title": p.get("title") or "",
+                # ✅ IMPORTANT: until hydrated, leave blank so UI can show "Link needed"
+                "url": p.get("url") or "",
+                "price": p.get("price") or "—",
+                "rating": float(p.get("rating")) if p.get("rating") is not None else 0.0,
+                "reviews_count": int(p.get("reviews_count"))
+                if p.get("reviews_count") is not None
+                else 0,
+                "description": p.get("description") or "",
+                "amazon_search_query": p.get("amazon_search_query"),
+            }
+        )
 
     md: list[str] = []
     md.append("---")
@@ -523,8 +570,10 @@ def main():
 
     for idx, p in enumerate(products):
         t = normalize_text(p.get("title", "")).strip() or f"Product {idx+1}"
-        pick_id = _make_pick_anchor_id(t, idx)
+        pick_id = str(p.get("pick_id") or _make_pick_anchor_id(t, idx))
 
+        # ✅ Stable marker for hydrator / debugging
+        md.append(f"<!-- pick_id: {pick_id} -->")
         md.append(f"### {t}")
         md.append("")
         md.append(f"{{{{PICK:{pick_id}}}}}")
@@ -543,10 +592,27 @@ def main():
     # 8) Depth expansion
     depth_agent = DepthExpansionAgent()
     modules = [
-        ExpansionModuleSpec(name="intro", enabled=True, max_words=format_spec.max_words_intro, rewrite_mode="upgrade"),
-        ExpansionModuleSpec(name="how_we_chose", enabled=True, max_words=format_spec.max_words_how_we_chose, rewrite_mode="upgrade"),
-        ExpansionModuleSpec(name="alternatives", enabled=True, max_words=format_spec.max_words_alternatives, rewrite_mode="upgrade"),
-        ExpansionModuleSpec(name="product_writeups", enabled=True, max_words=format_spec.max_words_product_writeups, rewrite_mode="upgrade"),
+        ExpansionModuleSpec(
+            name="intro", enabled=True, max_words=format_spec.max_words_intro, rewrite_mode="upgrade"
+        ),
+        ExpansionModuleSpec(
+            name="how_we_chose",
+            enabled=True,
+            max_words=format_spec.max_words_how_we_chose,
+            rewrite_mode="upgrade",
+        ),
+        ExpansionModuleSpec(
+            name="alternatives",
+            enabled=True,
+            max_words=format_spec.max_words_alternatives,
+            rewrite_mode="upgrade",
+        ),
+        ExpansionModuleSpec(
+            name="product_writeups",
+            enabled=True,
+            max_words=format_spec.max_words_product_writeups,
+            rewrite_mode="upgrade",
+        ),
     ]
 
     depth_inp = DepthExpansionInput(
@@ -554,7 +620,12 @@ def main():
         products=products,
         modules=modules,
         rewrite_mode="upgrade",
-        max_added_words=(format_spec.max_words_intro + format_spec.max_words_how_we_chose + format_spec.max_words_alternatives + format_spec.max_words_product_writeups),
+        max_added_words=(
+            format_spec.max_words_intro
+            + format_spec.max_words_how_we_chose
+            + format_spec.max_words_alternatives
+            + format_spec.max_words_product_writeups
+        ),
         voice="neutral",
         faqs=[],
         forbid_claims_of_testing=True,
@@ -615,16 +686,31 @@ def main():
         print("✅ Hero image ready:", hero_image_url)
 
     except Exception as e:
-        print("⚠️ Hero image generation unavailable/npm, using placeholder:", e)
+        print("⚠️ Hero image generation unavailable, using placeholder:", e)
         hero_image_url, hero_alt = _copy_placeholder_hero(post_slug)
 
     final_markdown = _replace_frontmatter_field(final_markdown, "heroImage", hero_image_url)
     final_markdown = _replace_frontmatter_field(final_markdown, "heroAlt", hero_alt)
 
     if DEFAULT_IMAGE_CREDIT_NAME:
-        final_markdown = _replace_frontmatter_field(final_markdown, "imageCreditName", DEFAULT_IMAGE_CREDIT_NAME)
+        final_markdown = _replace_frontmatter_field(
+            final_markdown, "imageCreditName", DEFAULT_IMAGE_CREDIT_NAME
+        )
     if DEFAULT_IMAGE_CREDIT_URL:
-        final_markdown = _replace_frontmatter_field(final_markdown, "imageCreditUrl", DEFAULT_IMAGE_CREDIT_URL)
+        final_markdown = _replace_frontmatter_field(
+            final_markdown, "imageCreditUrl", DEFAULT_IMAGE_CREDIT_URL
+        )
+
+    # ✅ Write per-post manifest (receipt / to-do list)
+    try:
+        manifest_path = write_post_manifest(
+            post_slug=post_slug,
+            provider=provider_id,
+            products=products,
+        )
+        print(f"🧾 Post manifest written: {manifest_path}")
+    except Exception as e:
+        print("⚠️ Unable to write post manifest:", e)
 
     # 11) Preflight QA + single repair attempt
     strict = os.getenv("PREFLIGHT_STRICT", "1").strip() not in {"0", "false", "False"}
@@ -657,7 +743,9 @@ def main():
             picks_texts=picks_texts,
         )
         final_markdown = repair_out.get("repaired_markdown", final_markdown)
-        repair_changes = repair_out.get("changes_made", []) if isinstance(repair_out.get("changes_made"), list) else []
+        repair_changes = (
+            repair_out.get("changes_made", []) if isinstance(repair_out.get("changes_made"), list) else []
+        )
 
         intro_text = _extract_section(final_markdown, "Intro")
         picks_texts = _extract_picks(final_markdown)
@@ -678,26 +766,28 @@ def main():
         failed_path.write_text(final_markdown, encoding="utf-8")
 
         print("❌ Preflight QA failed after repair. Post NOT published.")
-        append_log({
-            "date": post_date,
-            "publishedAt": published_at,
-            "title_initial": normalize_text(selected_title),
-            "topic": normalize_text(topic_text),
-            "category": topic_category,
-            "audience": normalize_text(topic_audience),
-            "file_failed": str(failed_path).replace("\\", "/"),
-            "product_count": len(products),
-            "heroImage": hero_image_url,
-            "word_count_before": before_wc,
-            "word_count_after": after_wc,
-            "format_id": format_id,
-            "affiliate_provider": provider_id,
-            "depth_modules_applied": depth_out.get("applied_modules", []),
-            "qa_initial": qa_initial,
-            "repair_attempted": repair_attempted,
-            "repair_changes": repair_changes,
-            "qa_after_repair": qa_after_repair,
-        })
+        append_log(
+            {
+                "date": post_date,
+                "publishedAt": published_at,
+                "title_initial": normalize_text(selected_title),
+                "topic": normalize_text(topic_text),
+                "category": topic_category,
+                "audience": normalize_text(topic_audience),
+                "file_failed": str(failed_path).replace("\\", "/"),
+                "product_count": len(products),
+                "heroImage": hero_image_url,
+                "word_count_before": before_wc,
+                "word_count_after": after_wc,
+                "format_id": format_id,
+                "affiliate_provider": provider_id,
+                "depth_modules_applied": depth_out.get("applied_modules", []),
+                "qa_initial": qa_initial,
+                "repair_attempted": repair_attempted,
+                "repair_changes": repair_changes,
+                "qa_after_repair": qa_after_repair,
+            }
+        )
         print(f"✅ Failed draft saved to {failed_path}")
         print(f"✅ Failure logged in {LOG_PATH}")
         return
@@ -711,27 +801,29 @@ def main():
     file_path.write_text(final_markdown, encoding="utf-8")
     print(f"✅ Astro post saved to {file_path}")
 
-    append_log({
-        "date": post_date,
-        "publishedAt": published_at,
-        "title_initial": normalize_text(selected_title),
-        "topic": normalize_text(topic_text),
-        "category": topic_category,
-        "audience": normalize_text(topic_audience),
-        "file": str(file_path).replace("\\", "/"),
-        "product_count": len(products),
-        "heroImage": hero_image_url,
-        "word_count_before": before_wc,
-        "word_count_after": after_wc,
-        "format_id": format_id,
-        "affiliate_provider": provider_id,
-        "depth_modules_applied": depth_out.get("applied_modules", []),
-        "title_candidates_top3": (title_out.get("selected", [])[:3] if isinstance(title_out, dict) else []),
-        "qa_initial": qa_initial,
-        "repair_attempted": repair_attempted,
-        "repair_changes": repair_changes,
-        "qa_after_repair": qa_after_repair,
-    })
+    append_log(
+        {
+            "date": post_date,
+            "publishedAt": published_at,
+            "title_initial": normalize_text(selected_title),
+            "topic": normalize_text(topic_text),
+            "category": topic_category,
+            "audience": normalize_text(topic_audience),
+            "file": str(file_path).replace("\\", "/"),
+            "product_count": len(products),
+            "heroImage": hero_image_url,
+            "word_count_before": before_wc,
+            "word_count_after": after_wc,
+            "format_id": format_id,
+            "affiliate_provider": provider_id,
+            "depth_modules_applied": depth_out.get("applied_modules", []),
+            "title_candidates_top3": (title_out.get("selected", [])[:3] if isinstance(title_out, dict) else []),
+            "qa_initial": qa_initial,
+            "repair_attempted": repair_attempted,
+            "repair_changes": repair_changes,
+            "qa_after_repair": qa_after_repair,
+        }
+    )
     print(f"✅ Post logged in {LOG_PATH}")
 
 

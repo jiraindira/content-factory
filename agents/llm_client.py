@@ -4,6 +4,8 @@ import os
 from typing import Dict, List, Optional
 
 from openai import OpenAI
+from lib.env import load_env
+load_env()
 
 
 DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.2")

@@ -6,10 +6,10 @@ providers:
     label: "Amazon UK"
     categories: [home, travel, gadgets, pets, kids, health]
 
-  mountain_warehouse:
-    label: "Mountain Warehouse"
-    categories: [travel]
-    requires_signal_group: outdoor_gear
+  # mountain_warehouse:
+  #   label: "Mountain Warehouse"
+  #   categories: [travel]
+  #   requires_signal_group: outdoor_gear
 
 signal_groups:
   outdoor_gear:

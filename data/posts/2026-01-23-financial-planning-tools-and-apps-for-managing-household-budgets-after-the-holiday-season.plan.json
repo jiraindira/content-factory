@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season",
+  "created_at": "2026-01-23T23:29:13Z",
+  "date": "2026-01-23",
+  "region": "UK",
+  "format_id": "top_picks",
+  "topic": "financial planning tools and apps for managing household budgets after the holiday season",
+  "category": "finance_and_productivity",
+  "audience": "UK adults looking to improve personal finance management and budgeting",
+  "provider_id": "amazon_uk",
+  "draft_title": "financial planning tools and apps for managing household budgets after the holiday season",
+  "products": [
+    {
+      "pick_id": "pick-1-money-manager-expense-budget-planner-notebook",
+      "catalog_key": "amazon_uk:money-manager-expense-budget-planner-notebook",
+      "title": "Money Manager Expense & Budget Planner Notebook",
+      "description": "A physical planner designed to help track daily expenses and manage household budgets effectively after the holiday season.",
+      "affiliate_url": "https://amzn.to/4tfD3Lh",
+      "rating": 4.6,
+      "reviews_count": 29244,
+      "price": "",
+      "asin": "B084RP9DBC"
+    },
+    {
+      "pick_id": "pick-2-casio-ms-20uc-desktop-calculator-with-large-display",
+      "catalog_key": "amazon_uk:casio-ms-20uc-desktop-calculator-with-large-display",
+      "title": "Casio MS-20UC Desktop Calculator with Large Display",
+      "description": "A reliable desktop calculator ideal for quick financial calculations and budgeting tasks at home.",
+      "affiliate_url": "https://amzn.to/4pUTFok",
+      "rating": 4.7,
+      "reviews_count": 3403,
+      "price": "",
+      "asin": "B076B4BF86"
+    },
+    {
+      "pick_id": "pick-4-sharp-el-1750v-financial-calculator",
+      "catalog_key": "amazon_uk:sharp-el-1750v-financial-calculator",
+      "title": "Sharp EL-1750V Financial Calculator",
+      "description": "A financial calculator designed for detailed budgeting, loan calculations, and financial planning.",
+      "affiliate_url": "https://amzn.to/49FdqvB",
+      "rating": 4.2,
+      "reviews_count": 3543,
+      "price": "",
+      "asin": "B01N636W43"
+    },
+    {
+      "pick_id": "pick-5-ledger-nano-s-plus-cryptocurrency-hardware-wallet",
+      "catalog_key": "amazon_uk:ledger-nano-s-plus-cryptocurrency-hardware-wallet",
+      "title": "Ledger Nano S Plus Cryptocurrency Hardware Wallet",
+      "description": "For UK adults interested in managing digital assets as part of their household financial planning.",
+      "affiliate_url": "https://amzn.to/469OhGU",
+      "rating": 4.5,
+      "reviews_count": 54,
+      "price": "",
+      "asin": "B0FTSV6LTH"
+    },
+    {
+      "pick_id": "pick-8-tile-mate-2022-bluetooth-tracker-for-wallets-and-keys",
+      "catalog_key": "amazon_uk:tile-mate-2022-bluetooth-tracker-for-wallets-and-keys",
+      "title": "Tile Mate (2022) Bluetooth Tracker for Wallets and Keys",
+      "description": "A handy device to keep track of wallets and important financial documents, reducing the risk of losing them during busy seasons.",
+      "affiliate_url": "https://amzn.to/4rhbuPU",
+      "rating": 4.2,
+      "reviews_count": 11006,
+      "price": "",
+      "asin": "B0D63657GY"
+    }
+  ],
+  "notes": "Step 2 hydrates from data/catalog/master.json. Catalog is human-owned and never overwritten.",
+  "status": "written",
+  "status_updated_at": "2026-01-24T22:25:43Z",
+  "status_meta": {
+    "slug": "2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season",
+    "output_path": "site\\src\\content\\posts\\2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season.md"
+  }
+}

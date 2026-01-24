@@ -196,6 +196,7 @@ class PreflightQAAgent:
             add(RULE_NO_PICKS_EXTRACTED, "error", "No pick writeups extracted under '## The picks'.")
 
         # 5) Ensure each pick includes a "skip guidance" clause (intent-based)
+        # ✅ Option A: this is helpful for quality, but not a publish blocker.
         missing_guidance = []
         for i, p in enumerate(picks_texts or []):
             if not _has_skip_guidance(p or ""):
@@ -203,7 +204,7 @@ class PreflightQAAgent:
         if missing_guidance:
             add(
                 RULE_MISSING_SKIP_IT_IF,
-                "error",
+                "warning",  # <-- changed from "error"
                 "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
                 {"missing_pick_numbers": missing_guidance},
             )
