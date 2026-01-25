@@ -49,14 +49,6 @@ def normalize_text(s: str) -> str:
     return (s or "").translate(NORMALIZE_TRANSLATION_TABLE)
 
 
-def slugify(text: str) -> str:
-    text = (text or "").lower().strip()
-    text = re.sub(r"\s+", "-", text)
-    text = re.sub(r"[^a-z0-9\-]", "", text)
-    text = re.sub(r"-{2,}", "-", s=text)
-    return text.strip("-")
-
-
 def estimate_word_count(text: str) -> int:
     return len((text or "").strip().split())
 
@@ -74,6 +66,9 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
 
 
 def _set_plan_status(plan_path: Path, status: str, extra: dict[str, Any] | None = None) -> None:
+    """
+    Best-effort status writes. Never fail the run because of status persistence.
+    """
     try:
         plan = _read_json(plan_path)
         plan["status"] = status
@@ -84,7 +79,6 @@ def _set_plan_status(plan_path: Path, status: str, extra: dict[str, Any] | None 
                 plan["status_meta"].update(extra)
         _write_json(plan_path, plan)
     except Exception:
-        # Never fail the post run due to status writes
         pass
 
 
@@ -184,8 +178,6 @@ def _replace_frontmatter_field(markdown: str, key: str, value: str) -> str:
 def _parse_frontmatter(md_text: str) -> dict[str, Any]:
     """
     Minimal YAML-ish frontmatter parser sufficient for QA.
-    - Handles key: "value" and key: value
-    - Ignores complex structures
     """
     lines = md_text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -212,6 +204,149 @@ def _parse_frontmatter(md_text: str) -> dict[str, Any]:
     return fm
 
 
+def _split_frontmatter(md_text: str) -> tuple[str, str]:
+    """
+    Returns (frontmatter_including_fences_or_empty, body).
+    """
+    text = md_text or ""
+    if not text.lstrip().startswith("---"):
+        return "", text
+    m = re.match(r"(?s)\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", text)
+    if not m:
+        return "", text
+    fm = "---\n" + m.group(1).strip() + "\n---\n"
+    body = m.group(2) or ""
+    return fm, body
+
+
+def _normalize_headings(md_text: str) -> str:
+    """
+    Structural fix ONLY:
+    - If headings appear mid-paragraph (e.g. "... life. ## How ..."), move them to a new line.
+    - Ensure a blank line after headings.
+    Critically: DO NOT split heading text across lines.
+    """
+    fm, body = _split_frontmatter(md_text)
+
+    # Move mid-line headings onto their own line.
+    body = re.sub(r"(?m)([^\n])\s+(##\s+)", r"\1\n\n\2", body)
+    body = re.sub(r"(?m)([^\n])\s+(###\s+)", r"\1\n\n\2", body)
+
+    lines = body.splitlines()
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        out.append(line)
+        if line.startswith("## ") or line.startswith("### "):
+            # Ensure at least one blank line after a heading.
+            nxt = lines[i + 1] if i + 1 < len(lines) else ""
+            if nxt.strip() != "":
+                out.append("")
+
+    cleaned = "\n".join(out)
+    cleaned = re.sub(r"\n{4,}", "\n\n\n", cleaned).strip() + "\n"
+    return fm + "\n" + cleaned if fm else cleaned
+
+
+def _enforce_pick_contract(md_text: str, astro_products: list[dict[str, Any]]) -> str:
+    """
+    Force the exact structure your UI expects:
+      <!-- pick_id: X -->
+      ### {product.title}
+      <body...>
+      <hr />
+
+    This ensures:
+    - remarkInlineProductCards.js injects the button/cards reliably
+    - quick links match heading IDs derived from the H3 text
+    """
+    if not astro_products:
+        return md_text
+
+    fm, body = _split_frontmatter(md_text)
+    lines = body.splitlines()
+
+    # Find picks section
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == "## The picks":
+            start = i
+            break
+    if start is None:
+        return md_text
+
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith("## ") and lines[j].strip() != "## The picks":
+            end = j
+            break
+
+    before = lines[: start + 1]
+    picks_block = lines[start + 1 : end]
+    after = lines[end:]
+
+    marker_re = re.compile(r"^\s*<!--\s*pick_id:\s*([a-z0-9\-_:]+)\s*-->\s*$", re.I)
+
+    # Collect existing content by pick_id (ignore whatever headings the model wrote)
+    content_by_pick: dict[str, list[str]] = {}
+    cur_pick: str | None = None
+    buf: list[str] = []
+
+    def flush():
+        nonlocal cur_pick, buf
+        if cur_pick and buf:
+            # Trim extra surrounding whitespace but keep internal formatting
+            chunk = "\n".join(buf).strip()
+            if chunk:
+                content_by_pick[cur_pick] = chunk.splitlines()
+        buf = []
+
+    for line in picks_block:
+        m = marker_re.match(line)
+        if m:
+            flush()
+            cur_pick = m.group(1).strip()
+            continue
+        if cur_pick:
+            buf.append(line)
+    flush()
+
+    rebuilt: list[str] = [""]
+    for p in astro_products:
+        pick_id = str(p.get("pick_id") or "").strip()
+        title = str(p.get("title") or "").strip() or "Product"
+        if not pick_id:
+            continue
+
+        rebuilt.append(f"<!-- pick_id: {pick_id} -->")
+        rebuilt.append(f"### {title}")
+        rebuilt.append("")
+
+        existing = content_by_pick.get(pick_id)
+        if existing:
+            # Remove any accidental headings the model inserted inside this chunk
+            cleaned_lines = []
+            for ln in existing:
+                if ln.strip().startswith("## ") or ln.strip().startswith("### "):
+                    continue
+                if marker_re.match(ln.strip()):
+                    continue
+                cleaned_lines.append(ln)
+            chunk = "\n".join(cleaned_lines).strip()
+            if chunk:
+                rebuilt.extend(chunk.splitlines())
+            else:
+                rebuilt.append(f"{{{{PICK:{pick_id}}}}}")
+        else:
+            rebuilt.append(f"{{{{PICK:{pick_id}}}}}")
+
+        rebuilt.append("")
+        rebuilt.append("<hr />")
+        rebuilt.append("")
+
+    new_body = "\n".join(before + rebuilt + after).strip() + "\n"
+    return fm + "\n" + new_body if fm else new_body
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Step 3 (manual pipeline): write + QA from a hydrated plan.")
     p.add_argument("--post-slug", required=True, help="Post slug, e.g. 2026-01-23-some-slug")
@@ -227,8 +362,13 @@ def main() -> int:
     if not plan_path.exists():
         raise FileNotFoundError(f"Missing plan: {plan_path}. Run plan_manual_post.py first.")
 
-    print(f"🟡 Step 3: start write_manual_post for slug={post_slug}")
+    # Keep DepthExpansion placeholder-driven (avoid whole-doc edit passes)
+    if os.getenv("DEPTH_ENABLE_EDIT_PASS") is None:
+        os.environ["DEPTH_ENABLE_EDIT_PASS"] = "0"
+
+    print(f"🟡 Step 3: write_manual_post slug={post_slug}")
     print(f"📄 Plan: {plan_path}")
+    print(f"🧩 DEPTH_ENABLE_EDIT_PASS={os.getenv('DEPTH_ENABLE_EDIT_PASS')}")
 
     plan = _read_json(plan_path)
     _set_plan_status(plan_path, "writing", {"slug": post_slug})
@@ -245,9 +385,6 @@ def main() -> int:
     if not isinstance(products, list) or not products:
         raise ValueError("Plan has no products. Did Step 1 succeed?")
 
-    print(f"🧺 Products in plan: {len(products)}")
-
-    # Build Astro frontmatter products array
     astro_products: list[dict[str, Any]] = []
     for p in products:
         if not isinstance(p, dict):
@@ -257,7 +394,7 @@ def main() -> int:
                 "pick_id": p.get("pick_id") or "",
                 "catalog_key": p.get("catalog_key") or "",
                 "title": p.get("title") or "",
-                "url": p.get("affiliate_url") or "",
+                "url": p.get("affiliate_url") or p.get("url") or "",
                 "price": p.get("price") or "—",
                 "rating": float(p.get("rating") or 0.0),
                 "reviews_count": int(p.get("reviews_count") or 0),
@@ -265,6 +402,8 @@ def main() -> int:
                 "amazon_search_query": p.get("amazon_search_query"),
             }
         )
+
+    print(f"🧺 Products: {len(astro_products)}")
 
     published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     meta_description = f"Curated {topic_category.replace('_', ' ')} picks for {topic_audience}."
@@ -291,9 +430,9 @@ def main() -> int:
     md.append("## The picks")
     md.append("")
 
-    for p in products:
+    for p in astro_products:
         title = normalize_text(p.get("title", "")).strip() or "Product"
-        pick_id = str(p.get("pick_id") or "")
+        pick_id = str(p.get("pick_id") or "").strip()
         md.append(f"<!-- pick_id: {pick_id} -->")
         md.append(f"### {title}")
         md.append("")
@@ -310,7 +449,7 @@ def main() -> int:
     draft_markdown = "\n".join(md)
     print("✍️  Draft scaffold built")
 
-    # Depth expansion (writing)
+    # Depth expansion
     print("🧠 Running DepthExpansionAgent…")
     depth_agent = DepthExpansionAgent()
     modules = [
@@ -353,7 +492,12 @@ def main() -> int:
 
     depth_out = depth_agent.run(depth_inp)
     final_markdown = depth_out.get("expanded_markdown", draft_markdown)
-    print("✅ Content generated by DepthExpansionAgent")
+
+    # Structural enforcement (no heading splitting)
+    final_markdown = _normalize_headings(final_markdown)
+    final_markdown = _enforce_pick_contract(final_markdown, astro_products)
+
+    print("✅ Content generated + structural contract enforced")
 
     intro_text = _extract_section(final_markdown, "Intro")
     picks_texts = _extract_picks(final_markdown)
@@ -376,7 +520,7 @@ def main() -> int:
         final_markdown = _replace_frontmatter_field(final_markdown, "title", final_title)
         print(f"✅ Title selected: {final_title}")
     except Exception as e:
-        print(f"⚠️ Title pass skipped due to error: {e}")
+        print(f"⚠️ Title pass skipped: {e}")
 
     # Hero image
     print("🖼️  Hero image…")
@@ -403,9 +547,8 @@ def main() -> int:
         hero_image_url, hero_alt = hero.hero_image_path, hero.hero_alt
         print(f"✅ Hero image generated: {hero_image_url}")
     except Exception as e:
-        print(f"⚠️ Hero image generation failed, using placeholder. Reason: {e}")
+        print(f"⚠️ Hero image generation failed, using placeholder: {e}")
         hero_image_url, hero_alt = _copy_placeholder_hero(post_slug)
-        print(f"✅ Placeholder hero image: {hero_image_url}")
 
     final_markdown = _replace_frontmatter_field(final_markdown, "heroImage", hero_image_url)
     final_markdown = _replace_frontmatter_field(final_markdown, "heroAlt", hero_alt)
@@ -414,7 +557,7 @@ def main() -> int:
     strict = os.getenv("PREFLIGHT_STRICT", "1").strip() not in {"0", "false", "False"}
     qa_agent = PreflightQAAgent(strict=strict)
 
-    def run_qa(md_text: str) -> dict[str, Any]:
+    def run_qa(md_text: str):
         frontmatter = _parse_frontmatter(md_text)
         return qa_agent.run(
             final_markdown=md_text,
@@ -426,52 +569,42 @@ def main() -> int:
 
     print("🔎 Running Preflight QA…")
     qa_initial = run_qa(final_markdown)
-    try:
-        ok = bool(getattr(qa_initial, "ok", False)) if not isinstance(qa_initial, dict) else bool(qa_initial.get("ok"))
-    except Exception:
-        ok = False
+    ok = bool(getattr(qa_initial, "ok", False))
 
     if not ok and MAX_REPAIR_ATTEMPTS > 0:
         print("🧯 QA failed, attempting repair…")
         try:
             llm = OpenAIJsonLLM()
             repair_agent = PostRepairAgent(llm=llm, config=PostRepairConfig(max_changes=12))
+            qa_dict = qa_initial.model_dump()
             repair_out = repair_agent.run(
                 draft_markdown=final_markdown,
-                qa_report=qa_initial,
+                qa_report=qa_dict,
                 products=products,
                 intro_text=intro_text,
                 picks_texts=picks_texts,
             )
             final_markdown = repair_out.get("repaired_markdown", final_markdown)
+            final_markdown = _normalize_headings(final_markdown)
+            final_markdown = _enforce_pick_contract(final_markdown, astro_products)
             qa_after = run_qa(final_markdown)
-            try:
-                ok = (
-                    bool(getattr(qa_after, "ok", False))
-                    if not isinstance(qa_after, dict)
-                    else bool(qa_after.get("ok"))
-                )
-            except Exception:
-                ok = False
-            print("✅ Repair attempted")
+            ok = bool(getattr(qa_after, "ok", False))
         except Exception as e:
-            print(f"⚠️ Repair skipped due to error: {e}")
+            print(f"⚠️ Repair skipped: {e}")
 
     if ok:
         print("✅ QA passed")
         _set_plan_status(plan_path, "qa_passed")
     else:
-        print("⚠️ QA did not pass (continuing to write output so you can inspect).")
+        print("⚠️ QA did not pass (writing output anyway so you can inspect)")
         _set_plan_status(plan_path, "qa_failed")
 
     # Write final Astro post
     ASTRO_POSTS_DIR.mkdir(parents=True, exist_ok=True)
-    filename = f"{post_slug}.md"
-    out_path = ASTRO_POSTS_DIR / filename
+    out_path = ASTRO_POSTS_DIR / f"{post_slug}.md"
 
     if args.dry_run:
-        print("🧪 Dry run enabled: not writing output file")
-        print(f"📄 Would write: {out_path.resolve()}")
+        print(f"🧪 Dry run: would write {out_path.resolve()}")
         _set_plan_status(plan_path, "written", {"dry_run": True, "output_path": str(out_path)})
         return 0
 

@@ -69,7 +69,7 @@
   ],
   "notes": "Step 2 hydrates from data/catalog/master.json. Catalog is human-owned and never overwritten.",
   "status": "written",
-  "status_updated_at": "2026-01-24T22:25:43Z",
+  "status_updated_at": "2026-01-24T23:58:31Z",
   "status_meta": {
     "slug": "2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season",
     "output_path": "site\\src\\content\\posts\\2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season.md"
