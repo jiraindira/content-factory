@@ -25,6 +25,11 @@ RULE_MISSING_SKIP_IT_IF = "RULE_MISSING_SKIP_IT_IF"
 RULE_FORBIDDEN_TESTING_CLAIMS = "RULE_FORBIDDEN_TESTING_CLAIMS"
 RULE_MISSING_SPACE_AFTER_PUNCT = "RULE_MISSING_SPACE_AFTER_PUNCT"
 
+# NEW: UI-contract rules (buttons + quick links depend on these)
+RULE_PICK_MARKER_HEADING_CONTRACT = "RULE_PICK_MARKER_HEADING_CONTRACT"
+RULE_PICK_ID_ALIGNMENT = "RULE_PICK_ID_ALIGNMENT"
+RULE_PICK_TITLE_ALIGNMENT = "RULE_PICK_TITLE_ALIGNMENT"
+
 
 _PLACEHOLDER_RE = re.compile(r"\{\{[^}]+\}\}")  # catches {{INTRO}}, {{PICK:...}} etc.
 
@@ -45,8 +50,6 @@ _FORBIDDEN_TESTING_PHRASES = [
 
 _MISSING_SPACE_AFTER_PUNCT_RE = re.compile(r"(?<=[a-z])[.!?](?=[A-Z])")
 
-# Acceptable "skip guidance" patterns. We care about the intent: a clear "don't buy it if..." line.
-# This avoids brittle failures when the copy uses synonyms (pass/overkill/not for you).
 _SKIP_GUIDANCE_PATTERNS = [
     r"\bskip it\b",
     r"\bskip this\b",
@@ -57,6 +60,11 @@ _SKIP_GUIDANCE_PATTERNS = [
     r"\boverkill\b.*\bif\b",
     r"\byou can skip\b",
 ]
+
+# Picks section parsing
+_PICK_ID_COMMENT_RE = re.compile(r"^\s*<!--\s*pick_id:\s*([a-z0-9\-_:]+)\s*-->\s*$", re.I)
+_H3_RE = re.compile(r"^\s*###\s+(.+?)\s*$")
+_H2_RE = re.compile(r"^\s*##\s+(.+?)\s*$")
 
 
 def _count_placeholders(text: str) -> int:
@@ -114,6 +122,69 @@ def _is_iso_datetime(s: str) -> bool:
 def _has_skip_guidance(text: str) -> bool:
     t = (text or "").lower()
     return any(re.search(pat, t) for pat in _SKIP_GUIDANCE_PATTERNS)
+
+
+def _extract_pick_blocks_from_markdown(final_markdown: str) -> list[dict[str, str]]:
+    """
+    Deterministically parse picks contract from markdown:
+
+      <!-- pick_id: X -->
+      ### Title
+
+    Returns list of {"pick_id":..., "title":...} in the order they appear
+    inside the '## The picks' section.
+    """
+    lines = (final_markdown or "").splitlines()
+
+    # Find "## The picks"
+    start = None
+    for i, ln in enumerate(lines):
+        m = _H2_RE.match(ln)
+        if m and m.group(1).strip().lower() == "the picks":
+            start = i + 1
+            break
+    if start is None:
+        return []
+
+    # End at next H2
+    end = len(lines)
+    for j in range(start, len(lines)):
+        if j == start:
+            continue
+        if _H2_RE.match(lines[j]):
+            end = j
+            break
+
+    picks_lines = lines[start:end]
+
+    out: list[dict[str, str]] = []
+    i = 0
+    while i < len(picks_lines):
+        m = _PICK_ID_COMMENT_RE.match(picks_lines[i])
+        if not m:
+            i += 1
+            continue
+
+        pick_id = m.group(1).strip()
+        # next non-empty line must be H3
+        k = i + 1
+        while k < len(picks_lines) and picks_lines[k].strip() == "":
+            k += 1
+        if k >= len(picks_lines):
+            out.append({"pick_id": pick_id, "title": ""})
+            break
+
+        h3 = _H3_RE.match(picks_lines[k])
+        if not h3:
+            out.append({"pick_id": pick_id, "title": ""})
+            i = k + 1
+            continue
+
+        title = h3.group(1).strip()
+        out.append({"pick_id": pick_id, "title": title})
+        i = k + 1
+
+    return out
 
 
 class PreflightQAAgent:
@@ -195,8 +266,67 @@ class PreflightQAAgent:
         if len(picks_texts or []) == 0:
             add(RULE_NO_PICKS_EXTRACTED, "error", "No pick writeups extracted under '## The picks'.")
 
+        # 4b) UI contract: pick markers + H3 headings must align with products
+        pick_blocks = _extract_pick_blocks_from_markdown(final_markdown)
+        metrics["pick_blocks_count"] = len(pick_blocks)
+
+        if pick_blocks:
+            # Ensure every marker has a valid heading right after it
+            missing_heading = [b["pick_id"] for b in pick_blocks if not (b.get("title") or "").strip()]
+            if missing_heading:
+                add(
+                    RULE_PICK_MARKER_HEADING_CONTRACT,
+                    "error",
+                    "Pick marker must be followed by an H3 heading: <!-- pick_id: X --> then ### Title.",
+                    {"pick_ids_missing_h3": missing_heading},
+                )
+
+            # Compare to products list (order matters)
+            expected = []
+            for p in products or []:
+                if isinstance(p, dict):
+                    expected.append(
+                        {
+                            "pick_id": str(p.get("pick_id") or "").strip(),
+                            "title": str(p.get("title") or "").strip(),
+                        }
+                    )
+
+            actual = [{"pick_id": b["pick_id"], "title": b.get("title", "")} for b in pick_blocks]
+
+            exp_ids = [x["pick_id"] for x in expected if x["pick_id"]]
+            act_ids = [x["pick_id"] for x in actual if x["pick_id"]]
+
+            if exp_ids and act_ids and exp_ids != act_ids:
+                add(
+                    RULE_PICK_ID_ALIGNMENT,
+                    "error",
+                    "Pick IDs in markdown do not match products[].pick_id order. This breaks product cards/buttons.",
+                    {"expected_pick_ids": exp_ids, "actual_pick_ids": act_ids},
+                )
+
+            # Title alignment (quick links rely on H3 text)
+            mismatched_titles: list[dict[str, Any]] = []
+            by_id_expected = {x["pick_id"]: x["title"] for x in expected if x["pick_id"]}
+            for b in actual:
+                pid = b["pick_id"]
+                if not pid:
+                    continue
+                exp_title = (by_id_expected.get(pid) or "").strip()
+                act_title = (b.get("title") or "").strip()
+                if exp_title and act_title and exp_title != act_title:
+                    mismatched_titles.append(
+                        {"pick_id": pid, "expected_title": exp_title, "actual_title": act_title}
+                    )
+            if mismatched_titles:
+                add(
+                    RULE_PICK_TITLE_ALIGNMENT,
+                    "error",
+                    "Pick H3 titles must match products[].title exactly (quick links + UI anchors rely on this).",
+                    {"mismatches": mismatched_titles},
+                )
+
         # 5) Ensure each pick includes a "skip guidance" clause (intent-based)
-        # ✅ Option A: this is helpful for quality, but not a publish blocker.
         missing_guidance = []
         for i, p in enumerate(picks_texts or []):
             if not _has_skip_guidance(p or ""):
@@ -204,7 +334,7 @@ class PreflightQAAgent:
         if missing_guidance:
             add(
                 RULE_MISSING_SKIP_IT_IF,
-                "warning",  # <-- changed from "error"
+                "warning",
                 "Missing skip-guidance (e.g., 'Skip it if…', 'Pass if…', 'Overkill if…') for one or more picks.",
                 {"missing_pick_numbers": missing_guidance},
             )

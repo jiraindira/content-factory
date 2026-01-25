@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-22-winter-layering-clothing-options-for-children-with-sensitive-skin",
+  "provider": "amazon_uk",
+  "generated_at": "2026-01-22T16:36:38Z",
+  "items": [
+    {
+      "pick_id": "pick-1-burts-bees-baby-unisex-baby-organic-cotton-bodysuits",
+      "generated_title": "Burt's Bees Baby Unisex Baby Organic Cotton Bodysuits",
+      "catalog_key": "amazon_uk:burts-bees-baby-unisex-baby-organic-cotton-bodysuits",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-2-hanna-andersson-kids-organic-cotton-long-john-pajamas",
+      "generated_title": "Hanna Andersson Kids' Organic Cotton Long John Pajamas",
+      "catalog_key": "amazon_uk:hanna-andersson-kids-organic-cotton-long-john-pajamas",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-3-lovedbaby-unisex-baby-organic-cotton-ribbed-bodysuit",
+      "generated_title": "L'ovedbaby Unisex Baby Organic Cotton Ribbed Bodysuit",
+      "catalog_key": "amazon_uk:lovedbaby-unisex-baby-organic-cotton-ribbed-bodysuit",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-4-columbia-baby-glacial-fleece-jacket",
+      "generated_title": "Columbia Baby Glacial Fleece Jacket",
+      "catalog_key": "amazon_uk:columbia-baby-glacial-fleece-jacket",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-5-simple-joys-by-carters-baby-boys-and-girls-thermal-underwear-set",
+      "generated_title": "Simple Joys by Carter's Baby Boys' and Girls' Thermal Underwear Set",
+      "catalog_key": "amazon_uk:simple-joys-by-carters-baby-boys-and-girls-thermal-underwear-set",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-6-kyte-baby-unisex-baby-bamboo-rayon-long-sleeve-bodysuit",
+      "generated_title": "Kyte BABY Unisex Baby Bamboo Rayon Long Sleeve Bodysuit",
+      "catalog_key": "amazon_uk:kyte-baby-unisex-baby-bamboo-rayon-long-sleeve-bodysuit",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-7-patagonia-baby-capilene-midweight-base-layer",
+      "generated_title": "Patagonia Baby Capilene Midweight Base Layer",
+      "catalog_key": "amazon_uk:patagonia-baby-capilene-midweight-base-layer",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-8-lovedbaby-organic-cotton-baby-beanie-hat",
+      "generated_title": "L'ovedbaby Organic Cotton Baby Beanie Hat",
+      "catalog_key": "amazon_uk:lovedbaby-organic-cotton-baby-beanie-hat",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    }
+  ],
+  "instructions": "Fill in affiliate_url + optional corrections in the central catalog. Use status=not_found in the catalog to remove."
+}

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-22-winter-friendly-indoor-plants-that-improve-air-quality-and-mood",
+  "provider": "amazon_uk",
+  "generated_at": "2026-01-22T22:56:07Z",
+  "items": [
+    {
+      "pick_id": "pick-1-snake-plant-sansevieria-indoor-potted-plant",
+      "generated_title": "Snake Plant (Sansevieria) Indoor Potted Plant",
+      "catalog_key": "amazon_uk:snake-plant-sansevieria-indoor-potted-plant",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-2-peace-lily-spathiphyllum-indoor-plant-with-self-watering-pot",
+      "generated_title": "Peace Lily (Spathiphyllum) Indoor Plant with Self-Watering Pot",
+      "catalog_key": "amazon_uk:peace-lily-spathiphyllum-indoor-plant-with-self-watering-pot",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-3-spider-plant-chlorophytum-comosum-hanging-basket",
+      "generated_title": "Spider Plant (Chlorophytum comosum) Hanging Basket",
+      "catalog_key": "amazon_uk:spider-plant-chlorophytum-comosum-hanging-basket",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-4-aloe-vera-potted-plant-for-indoor-use",
+      "generated_title": "Aloe Vera Potted Plant for Indoor Use",
+      "catalog_key": "amazon_uk:aloe-vera-potted-plant-for-indoor-use",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-5-philodendron-heartleaf-indoor-plant",
+      "generated_title": "Philodendron Heartleaf Indoor Plant",
+      "catalog_key": "amazon_uk:philodendron-heartleaf-indoor-plant",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-6-boston-fern-nephrolepis-exaltata-indoor-plant",
+      "generated_title": "Boston Fern (Nephrolepis exaltata) Indoor Plant",
+      "catalog_key": "amazon_uk:boston-fern-nephrolepis-exaltata-indoor-plant",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-7-zz-plant-zamioculcas-zamiifolia-indoor-potted-plant",
+      "generated_title": "ZZ Plant (Zamioculcas zamiifolia) Indoor Potted Plant",
+      "catalog_key": "amazon_uk:zz-plant-zamioculcas-zamiifolia-indoor-potted-plant",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-8-grow-light-for-indoor-plants-full-spectrum-led",
+      "generated_title": "Grow Light for Indoor Plants - Full Spectrum LED",
+      "catalog_key": "amazon_uk:grow-light-for-indoor-plants-full-spectrum-led",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    }
+  ],
+  "instructions": "Fill in affiliate_url + optional corrections in the central catalog. Use status=not_found in the catalog to remove."
+}

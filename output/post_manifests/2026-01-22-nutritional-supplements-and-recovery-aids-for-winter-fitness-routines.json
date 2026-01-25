@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-22-nutritional-supplements-and-recovery-aids-for-winter-fitness-routines",
+  "provider": "amazon_uk",
+  "generated_at": "2026-01-22T17:30:50Z",
+  "items": [
+    {
+      "pick_id": "pick-1-optimum-nutrition-gold-standard-100-whey-protein-powder",
+      "generated_title": "Optimum Nutrition Gold Standard 100% Whey Protein Powder",
+      "catalog_key": "amazon_uk:optimum-nutrition-gold-standard-100-whey-protein-powder",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-2-natures-aid-vitamin-d3-1000-iu-tablets",
+      "generated_title": "Natures Aid Vitamin D3 1000 IU Tablets",
+      "catalog_key": "amazon_uk:natures-aid-vitamin-d3-1000-iu-tablets",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-3-bulk-natural-bcaa-powder-211",
+      "generated_title": "Bulk Natural BCAA Powder 2:1:1",
+      "catalog_key": "amazon_uk:bulk-natural-bcaa-powder-211",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-4-biofreeze-pain-relief-gel-118ml",
+      "generated_title": "Biofreeze Pain Relief Gel 118ml",
+      "catalog_key": "amazon_uk:biofreeze-pain-relief-gel-118ml",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-5-myprotein-omega-3-fish-oil-capsules",
+      "generated_title": "MyProtein Omega-3 Fish Oil Capsules",
+      "catalog_key": "amazon_uk:myprotein-omega-3-fish-oil-capsules",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-6-sis-rego-rapid-recovery-drink-mix",
+      "generated_title": "SIS REGO Rapid Recovery Drink Mix",
+      "catalog_key": "amazon_uk:sis-rego-rapid-recovery-drink-mix",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-7-magnesium-citrate-capsules-by-natures-best",
+      "generated_title": "Magnesium Citrate Capsules by Nature's Best",
+      "catalog_key": "amazon_uk:magnesium-citrate-capsules-by-natures-best",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-8-theragun-mini-percussive-therapy-device",
+      "generated_title": "TheraGun Mini Percussive Therapy Device",
+      "catalog_key": "amazon_uk:theragun-mini-percussive-therapy-device",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    }
+  ],
+  "instructions": "Fill in affiliate_url + optional corrections in the central catalog. Use status=not_found in the catalog to remove."
+}

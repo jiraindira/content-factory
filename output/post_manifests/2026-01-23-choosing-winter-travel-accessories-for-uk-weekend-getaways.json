@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-23-choosing-winter-travel-accessories-for-uk-weekend-getaways",
+  "provider": "amazon_uk",
+  "generated_at": "2026-01-23T22:05:42Z",
+  "items": [
+    {
+      "pick_id": "pick-1-thermal-insulated-travel-mug-with-leak-proof-lid",
+      "generated_title": "Thermal Insulated Travel Mug with Leak-Proof Lid",
+      "catalog_key": "amazon_uk:thermal-insulated-travel-mug-with-leak-proof-lid",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-2-compact-portable-power-bank-with-usb-c-and-usb-a-ports",
+      "generated_title": "Compact Portable Power Bank with USB-C and USB-A Ports",
+      "catalog_key": "amazon_uk:compact-portable-power-bank-with-usb-c-and-usb-a-ports",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-3-packable-waterproof-travel-backpack-cover",
+      "generated_title": "Packable Waterproof Travel Backpack Cover",
+      "catalog_key": "amazon_uk:packable-waterproof-travel-backpack-cover",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-4-soft-fleece-travel-blanket-with-carry-pouch",
+      "generated_title": "Soft Fleece Travel Blanket with Carry Pouch",
+      "catalog_key": "amazon_uk:soft-fleece-travel-blanket-with-carry-pouch",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-5-compact-travel-umbrella-windproof-and-lightweight",
+      "generated_title": "Compact Travel Umbrella Windproof and Lightweight",
+      "catalog_key": "amazon_uk:compact-travel-umbrella-windproof-and-lightweight",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-6-touchscreen-compatible-winter-gloves",
+      "generated_title": "Touchscreen Compatible Winter Gloves",
+      "catalog_key": "amazon_uk:touchscreen-compatible-winter-gloves",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-7-portable-hand-warmer-rechargeable-usb",
+      "generated_title": "Portable Hand Warmer Rechargeable USB",
+      "catalog_key": "amazon_uk:portable-hand-warmer-rechargeable-usb",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-8-travel-sized-moisturizing-hand-cream-set",
+      "generated_title": "Travel-Sized Moisturizing Hand Cream Set",
+      "catalog_key": "amazon_uk:travel-sized-moisturizing-hand-cream-set",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    }
+  ],
+  "instructions": "Fill in affiliate_url + optional corrections in the central catalog. Use status=not_found in the catalog to remove."
+}

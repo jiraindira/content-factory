@@ -1,15 +1,44 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+*.egg-info/
 .venv/
+venv/
+
+# Env files
 .env
+.env.*
 
-# Outputs / logs
-output/
-outputs/
-*.log
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
-# Node / Astro
+# Node/Astro
 site/node_modules/
-site/.astro/
 site/dist/
+site/.astro/
+site/.vercel/
+site/.netlify/
+
+# Runtime outputs (keep only what we explicitly track)
+output/failed_posts/
+output/generated_markdown/
+output/tmp/
+outputs/
+output/blog_*.md
+
+
+# Logs
+*.log

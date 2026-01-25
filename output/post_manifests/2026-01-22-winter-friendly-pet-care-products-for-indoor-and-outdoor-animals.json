@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "post_slug": "2026-01-22-winter-friendly-pet-care-products-for-indoor-and-outdoor-animals",
+  "provider": "amazon_uk",
+  "generated_at": "2026-01-22T23:11:15Z",
+  "items": [
+    {
+      "pick_id": "pick-1-heated-pet-bed-for-dogs-and-cats",
+      "generated_title": "Heated Pet Bed for Dogs and Cats",
+      "catalog_key": "amazon_uk:heated-pet-bed-for-dogs-and-cats",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-2-waterproof-dog-coat-with-reflective-strips",
+      "generated_title": "Waterproof Dog Coat with Reflective Strips",
+      "catalog_key": "amazon_uk:waterproof-dog-coat-with-reflective-strips",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-3-pet-paw-protection-wax",
+      "generated_title": "Pet Paw Protection Wax",
+      "catalog_key": "amazon_uk:pet-paw-protection-wax",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-4-indoor-cat-heated-mat",
+      "generated_title": "Indoor Cat Heated Mat",
+      "catalog_key": "amazon_uk:indoor-cat-heated-mat",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-5-insulated-outdoor-dog-house",
+      "generated_title": "Insulated Outdoor Dog House",
+      "catalog_key": "amazon_uk:insulated-outdoor-dog-house",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-6-pet-friendly-ice-melt-for-walkways",
+      "generated_title": "Pet-Friendly Ice Melt for Walkways",
+      "catalog_key": "amazon_uk:pet-friendly-ice-melt-for-walkways",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-7-fleece-lined-dog-sweater",
+      "generated_title": "Fleece-Lined Dog Sweater",
+      "catalog_key": "amazon_uk:fleece-lined-dog-sweater",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    },
+    {
+      "pick_id": "pick-8-pet-moisturizing-paw-balm",
+      "generated_title": "Pet Moisturizing Paw Balm",
+      "catalog_key": "amazon_uk:pet-moisturizing-paw-balm",
+      "affiliate_url": "",
+      "status": "ok",
+      "notes": ""
+    }
+  ],
+  "instructions": "Fill in affiliate_url + optional corrections in the central catalog. Use status=not_found in the catalog to remove."
+}
