@@ -9,7 +9,9 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "^6.3.10",
     "astro": "^5.16.6",
+    "marked": "^17.0.1",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {

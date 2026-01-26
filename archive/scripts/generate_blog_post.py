@@ -572,7 +572,6 @@ def main():
         t = normalize_text(p.get("title", "")).strip() or f"Product {idx+1}"
         pick_id = str(p.get("pick_id") or _make_pick_anchor_id(t, idx))
 
-        # ✅ Stable marker for hydrator / debugging
         md.append(f"<!-- pick_id: {pick_id} -->")
         md.append(f"### {t}")
         md.append("")
@@ -581,15 +580,12 @@ def main():
         md.append("<hr />")
         md.append("")
 
-    md.append("## Alternatives worth considering")
-    md.append("")
-    md.append("{{ALTERNATIVES}}")
-    md.append("")
+    # ✅ Removed: Alternatives worth considering section entirely
 
     draft_markdown = "\n".join(md)
     before_wc = estimate_word_count(draft_markdown)
 
-    # 8) Depth expansion
+    # 8) Depth expansion (no alternatives module)
     depth_agent = DepthExpansionAgent()
     modules = [
         ExpansionModuleSpec(
@@ -599,12 +595,6 @@ def main():
             name="how_we_chose",
             enabled=True,
             max_words=format_spec.max_words_how_we_chose,
-            rewrite_mode="upgrade",
-        ),
-        ExpansionModuleSpec(
-            name="alternatives",
-            enabled=True,
-            max_words=format_spec.max_words_alternatives,
             rewrite_mode="upgrade",
         ),
         ExpansionModuleSpec(
@@ -623,7 +613,6 @@ def main():
         max_added_words=(
             format_spec.max_words_intro
             + format_spec.max_words_how_we_chose
-            + format_spec.max_words_alternatives
             + format_spec.max_words_product_writeups
         ),
         voice="neutral",
@@ -637,9 +626,8 @@ def main():
 
     intro_text = _extract_section(final_markdown, "Intro")
     picks_texts = _extract_picks(final_markdown)
-    alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
 
-    # 9) Final title pass
+    # 9) Final title pass (no alternatives)
     max_chars = int(os.getenv("TITLE_MAX_CHARS", "60"))
     try:
         llm = OpenAIJsonLLM()
@@ -653,14 +641,14 @@ def main():
             intro=intro_text or normalize_text(topic_text),
             picks=picks_texts,
             products=products,
-            alternatives=alternatives_text or None,
+            alternatives=None,
         )
         final_markdown = _replace_frontmatter_field(final_markdown, "title", final_title)
         print("✅ Final Title (post-body):", final_title)
     except Exception as e:
         print("⚠️ Final title pass unavailable, keeping initial title:", e)
 
-    # 10) Hero image generation
+    # 10) Hero image generation (no alternatives)
     try:
         llm = OpenAIJsonLLM()
         img = OpenAIImageGenerator()
@@ -680,7 +668,7 @@ def main():
             title=normalize_text(topic_text),
             intro=intro_text or normalize_text(topic_text),
             picks=picks_texts,
-            alternatives=alternatives_text or None,
+            alternatives=None,
         )
         hero_image_url, hero_alt = hero.hero_image_path, hero.hero_alt
         print("✅ Hero image ready:", hero_image_url)
@@ -749,7 +737,6 @@ def main():
 
         intro_text = _extract_section(final_markdown, "Intro")
         picks_texts = _extract_picks(final_markdown)
-        alternatives_text = _extract_section(final_markdown, "Alternatives worth considering")
 
         qa_after_repair = _run_preflight(
             qa_agent=qa_agent,

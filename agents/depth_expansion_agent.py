@@ -6,6 +6,7 @@ from typing import Any
 
 from agents.base import BaseAgent
 from agents.llm_client import LLMClient
+from lib.markdown_normalizer import normalize_markdown
 from schemas.depth import (
     AppliedModule,
     DepthExpansionInput,
@@ -56,8 +57,14 @@ def _env_flag(name: str, default: bool = True) -> bool:
 
 
 def _sanitize_text(text: str, banned_phrases: list[str]) -> str:
+    """
+    Remove banned phrases without destroying markdown structure.
+    Critical: preserve newlines, indentation, and blank lines.
+    """
     out = text or ""
     low = out.lower()
+
+    # Remove banned phrases (case variants) conservatively.
     for bp in banned_phrases or []:
         bpl = (bp or "").lower().strip()
         if not bpl:
@@ -65,7 +72,23 @@ def _sanitize_text(text: str, banned_phrases: list[str]) -> str:
         if bpl in low:
             out = out.replace(bp, "").replace(bp.title(), "").replace(bp.upper(), "")
             low = out.lower()
-    return " ".join(out.split()).strip()
+
+    # Normalize spaces per-line but preserve newlines.
+    # - collapse runs of spaces/tabs
+    # - keep blank lines
+    cleaned_lines: list[str] = []
+    for line in out.splitlines():
+        # Preserve intentionally blank lines
+        if not line.strip():
+            cleaned_lines.append("")
+            continue
+        line = re.sub(r"[ \t]+", " ", line).strip()
+        cleaned_lines.append(line)
+
+    # Prevent excessive blank lines
+    result = "\n".join(cleaned_lines)
+    result = re.sub(r"\n{3,}", "\n\n", result)
+    return result.strip()
 
 
 # -------------------------
@@ -200,12 +223,22 @@ class DepthExpansionAgent(BaseAgent):
                     applied.append(
                         AppliedModule(
                             name="edit_pass",
-                            added_words_estimate=max(
-                                0, estimate_word_count(expanded) - estimate_word_count(expanded_before)
-                            ),
+                            added_words_estimate=max(0, estimate_word_count(expanded) - estimate_word_count(expanded_before)),
                             notes="Applied whole-document editor pass (upgrade).",
                         )
                     )
+
+        # -------------------------
+        # STRUCTURAL GUARANTEE
+        # -------------------------
+        # Even if the model/editor collapses whitespace, ensure markdown structure is valid.
+        product_titles = [
+            p.get("title", "")
+            for p in (inp.products or [])
+            if isinstance(p, dict) and isinstance(p.get("title", ""), str)
+        ]
+        expanded = normalize_markdown(expanded, product_titles=product_titles)
+        expanded = normalize_ws(expanded)
 
         after_wc = estimate_word_count(expanded)
 
@@ -378,6 +411,9 @@ HARD RULES:
 - DO NOT change any URLs.
 - DO NOT add claims of hands-on testing.
 - DO NOT add new sections or headings beyond what exists.
+- Keep ALL existing headings on their own lines.
+- Never put paragraph text on the same line as a '##' or '###' heading.
+- Ensure a blank line after each heading.
 - Do not invent product features.
 - Output ONLY the edited markdown BODY (no frontmatter).
 

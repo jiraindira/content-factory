@@ -1,0 +1,72 @@
+{
+  "category": "pets",
+  "subcategory": "dogs",
+  "audience": "UK shoppers",
+  "source_url": "https://www.amazon.co.uk/Best-Sellers-Pet-Supplies-Dogs/zgbs/pet-supplies/451110031/ref=zg_bs_nav_pet-supplies_1",
+  "products": [
+    {
+      "name": "WINALOT Meaty Chunks Adult Wet Dog",
+      "url": "https://amzn.to/3O3KO6x",
+      "rating": 4.7,
+      "reviews_count": 19264,
+      "price": "£9.50",
+      "status": "ok"
+    },
+    {
+      "name": "Earth Rated Dog Poo Bags",
+      "url": "https://amzn.to/4rdKfWe",
+      "rating": 4.7,
+      "reviews_count": 225215,
+      "price": "£10.92",
+      "status": "ok"
+    },
+    {
+      "name": "Harringtons Complete Dry Adult Dog Food Lamb & Rice 15kg ",
+      "url": "https://amzn.to/4adCTw9",
+      "rating": 4.6,
+      "reviews_count": 24671,
+      "price": "£26.60",
+      "status": "ok"
+    },
+    {
+      "name": "ProDen PlaqueOff Powder for Dogs & Cats, Tartar & Bad Breath Remover",
+      "url": "https://amzn.to/4pUDPtV",
+      "rating": 4.3,
+      "reviews_count": 41650,
+      "price": "£12.34",
+      "status": "ok"
+    },
+    {
+      "name": "Amazon Basics Dog and Puppy Training Pads, Leakproof",
+      "url": "https://amzn.to/4k2Ctfu",
+      "rating": 4.5,
+      "reviews_count": 224477,
+      "price": "£8.50",
+      "status": "ok"
+    },
+    {
+      "name": "Pet Munchies Venison & Beef Liver Dog Training Treats",
+      "url": "https://amzn.to/3M3IEU0",
+      "rating": 4.6,
+      "reviews_count": 7810,
+      "price": "£24.00",
+      "status": "ok"
+    },
+    {
+      "name": "Protexin Pro-Fibre for Dogs – High-Fibre Digestive Supplement with Prebiotics & Postbiotics",
+      "url": "https://amzn.to/49WRMlc",
+      "rating": 4.6,
+      "reviews_count": 8504,
+      "price": "£11.02",
+      "status": "ok"
+    },
+    {
+      "name": "WHIMZEES Variety Box Dental M, 28 Pieces ",
+      "url": "https://amzn.to/4pSfrcp",
+      "rating": 4.6,
+      "reviews_count": 18683,
+      "price": "£14.92",
+      "status": "ok"
+    }
+  ]
+}

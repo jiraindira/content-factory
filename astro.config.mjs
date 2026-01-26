@@ -10,7 +10,7 @@ export default defineConfig({
   site: "http://localhost:4321",
   integrations: [tailwind()],
   markdown: {
-    // wrappers first (no injectors)
+    // wrappers only
     remarkPlugins: [wrapMethodologyCallout],
   },
 });

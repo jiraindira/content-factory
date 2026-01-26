@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "strict": false,
+  "errors": [],
+  "warnings": [
+    "Frontmatter missing title.",
+    "Frontmatter missing description.",
+    "Frontmatter missing publishedAt.",
+    "Frontmatter missing heroImage.",
+    "Frontmatter missing heroAlt.",
+    "Intro section appears empty.",
+    "No pick writeups extracted under '## The picks'."
+  ],
+  "issues": [
+    {
+      "rule_id": "RULE_MISSING_FRONTMATTER_TITLE",
+      "level": "warning",
+      "message": "Frontmatter missing title.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_MISSING_FRONTMATTER_DESCRIPTION",
+      "level": "warning",
+      "message": "Frontmatter missing description.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_MISSING_FRONTMATTER_PUBLISHED_AT",
+      "level": "warning",
+      "message": "Frontmatter missing publishedAt.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_MISSING_FRONTMATTER_HERO_IMAGE",
+      "level": "warning",
+      "message": "Frontmatter missing heroImage.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_MISSING_FRONTMATTER_HERO_ALT",
+      "level": "warning",
+      "message": "Frontmatter missing heroAlt.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_EMPTY_INTRO",
+      "level": "warning",
+      "message": "Intro section appears empty.",
+      "meta": {}
+    },
+    {
+      "rule_id": "RULE_NO_PICKS_EXTRACTED",
+      "level": "warning",
+      "message": "No pick writeups extracted under '## The picks'.",
+      "meta": {}
+    }
+  ],
+  "metrics": {
+    "placeholders_count": 0,
+    "products_count": 6,
+    "picks_count": 0,
+    "pick_blocks_count": 6,
+    "forbidden_testing_hits": 0,
+    "missing_space_after_punct_hits": 0
+  },
+  "mode": "warn_only"
+}

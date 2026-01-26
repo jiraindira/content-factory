@@ -1,56 +1,265 @@
 ---
-const { title, price, rating, reviews_count, url, description } = Astro.props;
+// src/components/ProductCard.astro
+const { title, rating, reviews_count, url, description, bodyHtml } = Astro.props;
 
-function hostname(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
+/**
+ * PM NOTE:
+ * "rating" and "reviews_count" come from frontmatter products[].
+ * They might arrive as strings (depending on parsing), so we normalize safely.
+ */
+function safeNumber(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? x : null;
 }
 
-const site = hostname(url);
+const r = safeNumber(rating);
+const rc = safeNumber(reviews_count);
+
+/**
+ * PM NOTE:
+ * Stars fill is purely visual (percentage width over 5 stars).
+ * Clamp to [0,100] so bad input doesn't overflow UI.
+ */
+const ratingPct = r != null ? Math.max(0, Math.min(100, (r / 5) * 100)) : 0;
+
+const hasUrl = typeof url === "string" && url.trim().length > 0;
+
+/**
+ * PM NOTE (CRITICAL CONTRACT):
+ * bodyHtml is the “real pick write-up”, rendered upstream in the page route:
+ *   markdown -> HTML via marked.parse(...)
+ *
+ * This is exactly what fixed the layout: we keep markdown parsing OUT of the card.
+ */
+const hasBodyHtml = typeof bodyHtml === "string" && bodyHtml.trim().length > 0;
+
+/**
+ * PM NOTE:
+ * description is optional fallback copy stored in frontmatter.
+ * Our precedence is: bodyHtml (author markdown) > description (frontmatter) > nothing.
+ */
+const hasDesc = typeof description === "string" && description.trim().length > 0;
 ---
 
-<article class="border-b border-gray-200 pb-6">
-  <div class="flex items-start justify-between gap-6">
-    <div class="min-w-0">
-      <!-- Title -->
-      <h3 class="text-base font-semibold text-gray-900 leading-snug">
-        {title}
-      </h3>
+<article class="pick">
+  <!--
+    PM NOTE:
+    Title is rendered by the page ([...slug].astro) as the single canonical H3.
+    Keeping it out of the visible card prevents duplication and keeps semantics clean.
+  -->
+  <p class="sr-only">{title}</p>
 
-      <!-- Meta -->
-      <div class="mt-2 text-xs text-gray-500">
-        {typeof rating === "number" ? <span>{rating.toFixed(1)}★</span> : null}
-        {typeof reviews_count === "number" ? (
-          <span>{typeof rating === "number" ? " · " : ""}{reviews_count.toLocaleString()} reviews</span>
-        ) : null}
-        {price ? (
-          <span>{(rating || reviews_count) ? " · " : ""}{price}</span>
-        ) : null}
-        {site ? (
-          <span>{(rating || reviews_count || price) ? " · " : ""}{site}</span>
-        ) : null}
-      </div>
+  {(r != null || rc != null) && (
+    <div
+      class="pick-rating"
+      aria-label={r != null ? `Rated ${r.toFixed(1)} out of 5` : "Rating"}
+    >
+      {r != null && (
+        <>
+          <span class="stars" aria-hidden="true">
+            <span class="stars-base">★★★★★</span>
+            <span class="stars-fill" style={`width:${ratingPct}%`}>★★★★★</span>
+          </span>
+          <span class="rating-num">{r.toFixed(1)}</span>
+        </>
+      )}
 
-      <!-- Description -->
-      {description && (
-        <p class="mt-3 text-sm text-gray-700 leading-relaxed max-w-2xl">
-          {description}
-        </p>
+      {rc != null && (
+        <span class="reviews">
+          {r != null ? <span class="dot">·</span> : null}
+          {rc.toLocaleString()} reviews
+        </span>
       )}
     </div>
+  )}
 
-    <!-- CTA -->
-    <div class="shrink-0 pt-1">
-      <a
-        href={url}
-        rel="sponsored nofollow"
-        class="text-sm font-semibold text-blue-600 hover:text-blue-700 whitespace-nowrap"
-      >
-        Check price →
-      </a>
+  <!--
+    PM NOTE:
+    This layout is the “gold standard” behavior:
+    - prose on the left
+    - button on the right (same row on desktop)
+    - button drops under on small screens (via media query)
+  -->
+  <div class="content-row">
+    <div class="desc-wrap">
+      {hasBodyHtml ? (
+        <div class="pick-prose" set:html={bodyHtml} />
+      ) : hasDesc ? (
+        <p class="desc">{description}</p>
+      ) : null}
+    </div>
+
+    <div class="cta">
+      {hasUrl ? (
+        <a
+          href={url}
+          rel="sponsored nofollow noopener"
+          target="_blank"
+          class="btn"
+        >
+          Check price →
+        </a>
+      ) : (
+        <span class="btn btn-disabled" aria-disabled="true">No link</span>
+      )}
     </div>
   </div>
 </article>
+
+<style>
+  .pick {
+    padding: 18px 0 22px;
+  }
+
+  .pick-rating {
+    margin-top: 6px;
+    font-size: 14px;
+    color: rgba(55, 65, 81, 0.85);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .stars {
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+    letter-spacing: 2px;
+    font-size: 16px;
+  }
+
+  .stars-base {
+    color: rgba(17, 24, 39, 0.18);
+  }
+
+  .stars-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    color: rgb(37, 99, 235);
+  }
+
+  .rating-num {
+    font-weight: 800;
+    color: rgba(17, 24, 39, 0.92);
+  }
+
+  .dot {
+    margin: 0 4px;
+    opacity: 0.55;
+  }
+
+  /* PM NOTE:
+     Flex layout is intentionally used because it's more predictable than grid
+     when content height varies (long prose, short prose, etc.). */
+  .content-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .desc-wrap {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .cta {
+    flex: 0 0 auto;
+    display: grid;
+    align-content: start;
+    justify-items: end;
+  }
+
+  /* PM NOTE:
+     Mobile breakpoint: CTA moves below the prose.
+     If this ever “mysteriously” stacks on desktop, it usually means:
+     - CSS not being applied (wrong component rendered)
+     - layout is overriding display on .content-row
+     - or breakpoint styles are being triggered unexpectedly */
+  @media (max-width: 520px) {
+    .content-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .cta {
+      justify-items: start;
+      margin-top: 10px;
+    }
+  }
+
+  /* fallback text style if you ever use description */
+  .desc {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.8;
+    color: rgba(17, 24, 39, 0.88);
+    max-width: 72ch;
+  }
+
+  /* ✅ styles for the real markdown body (bodyHtml) */
+  .pick-prose :global(p) {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 1.8;
+    color: rgba(17, 24, 39, 0.88);
+    max-width: 72ch;
+  }
+
+  .pick-prose :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .pick-prose :global(ul),
+  .pick-prose :global(ol) {
+    margin: 12px 0 12px 20px;
+    padding-left: 18px;
+  }
+
+  .pick-prose :global(li) {
+    margin: 8px 0;
+  }
+
+  .pick-prose :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    background: rgb(37, 99, 235);
+    color: #fff;
+  }
+
+  .btn:hover {
+    background: rgb(29, 78, 216);
+  }
+
+  .btn-disabled {
+    background: rgba(17, 24, 39, 0.06);
+    color: rgba(55, 65, 81, 0.65);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

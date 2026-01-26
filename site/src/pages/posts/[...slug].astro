@@ -2,7 +2,8 @@
 import { getCollection } from "astro:content";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import PostLayout from "../../layouts/PostLayout.astro";
-import { getPostHeroImage } from "../../lib/postImages";
+import ProductCard from "../../components/ProductCard.astro";
+import { marked } from "marked";
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts");
@@ -13,32 +14,22 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { Content } = await post.render();
 
-const { products = [], category, publishedAt } = post.data;
+// Ensure Astro still processes the markdown entry normally (content collections)
+await post.render();
 
-const FALLBACK_HERO = "/images/placeholder-hero.webp";
+const { products = [], publishedAt, category } = post.data;
 
-function formatDate(d) {
-  try {
-    return new Date(d).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return "";
-  }
-}
+// SEO / sharing
+const canonical = `/posts/${post.slug}`;
+const ogImage = post.data.heroImage;
 
-function prettyCategory(s) {
-  if (!s) return "";
-  return s
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace(/\bAnd\b/g, "&");
-}
+// Raw markdown body (no frontmatter)
+const rawBody = String(post.body ?? "");
 
+// -----------------------------
+// Deterministic parsing helpers
+// -----------------------------
 function slugifyHeading(text) {
   return String(text || "")
     .toLowerCase()
@@ -49,66 +40,204 @@ function slugifyHeading(text) {
     .replace(/-+/g, "-");
 }
 
-function estimateReadingTimeFromMarkdown(md) {
-  const text = String(md || "")
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/[#>*_~]/g, " ");
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const mins = Math.max(1, Math.round(words / 220));
-  return mins;
-}
-
-function extractTocFromMarkdown(md) {
+// Find the "## The picks" section boundary
+function splitBeforePicks(md) {
   const lines = String(md || "").split("\n");
-  const toc = [];
-  for (const line of lines) {
-    const m = line.match(/^##\s+(.+)\s*$/);
+  let idx = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^##\s+(.+)\s*$/);
     if (!m) continue;
-    const text = m[1].trim();
-    const id = slugifyHeading(text);
-    toc.push({ text, id });
+    if (m[1].trim().toLowerCase() === "the picks") {
+      idx = i;
+      break;
+    }
   }
-  return toc;
+
+  if (idx === -1) {
+    return { pre: md, picksSection: "" };
+  }
+
+  const pre = lines.slice(0, idx).join("\n").trim();
+  const picksSection = lines.slice(idx).join("\n").trim();
+  return { pre, picksSection };
 }
 
-const dateLabel = publishedAt ? formatDate(publishedAt) : "";
-const categoryLabel = category ? prettyCategory(category) : "";
+/**
+ * Split "pre picks" markdown into:
+ *  - beforeHow: everything before "## How this list was chosen"
+ *  - howSection: that section (H2 + its content) until next H2 or end
+ *  - afterHow: everything after that section (still before picks)
+ */
+function splitHowChosenSection(md) {
+  const lines = String(md || "").split("\n");
+  const h2Re = /^\s*##\s+(.+?)\s*$/;
 
-const picks = products;
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(h2Re);
+    if (!m) continue;
+    if (m[1].trim().toLowerCase() === "how this list was chosen") {
+      start = i;
+      break;
+    }
+  }
 
-// Normalize hero image value
-const heroImageRaw =
-  typeof post?.data?.heroImage === "string" && post.data.heroImage.trim().length > 0
-    ? post.data.heroImage.trim()
-    : FALLBACK_HERO;
+  if (start === -1) {
+    return { beforeHow: md, howSection: "", afterHow: "" };
+  }
 
-const heroAlt =
-  typeof post?.data?.heroAlt === "string" && post.data.heroAlt.trim().length > 0
-    ? post.data.heroAlt.trim()
-    : post?.data?.title ?? "";
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    const m = lines[i].match(h2Re);
+    if (m) {
+      end = i;
+      break;
+    }
+  }
 
-const isPublicHero = heroImageRaw.startsWith("/");
-const heroAsset = !isPublicHero ? getPostHeroImage(heroImageRaw) : null;
+  const beforeHow = lines.slice(0, start).join("\n").trim();
+  const howSection = lines.slice(start, end).join("\n").trim();
+  const afterHow = lines.slice(end).join("\n").trim();
+  return { beforeHow, howSection, afterHow };
+}
 
-// SEO / sharing
-const canonical = `/posts/${post.slug}`;
-const ogImage = heroImageRaw;
+/**
+ * Convert the body of "How this list was chosen" into bullet points.
+ * Assumes the section looks like:
+ *   ## How this list was chosen
+ *   Intro paragraph...
+ *
+ *   Paragraph 1...
+ *
+ *   Paragraph 2...
+ *
+ * We keep the intro paragraph, then turn remaining paragraphs into "- ..." list items.
+ */
+function normalizeHowChosenToBullets(sectionMd) {
+  if (!sectionMd) return "";
 
-// Build TOC + reading time from raw markdown body
-const rawBody = post.body ?? "";
-const toc = extractTocFromMarkdown(rawBody);
-const readingTime = estimateReadingTimeFromMarkdown(rawBody);
+  const lines = sectionMd.split("\n");
+  if (!lines.length) return sectionMd;
 
-// Quick picks behavior
-const MAX_QUICK_PICKS = 8;
-const quickPicks = picks.slice(0, MAX_QUICK_PICKS);
+  // First line should be the H2
+  const headingLine = lines[0];
+  const rest = lines.slice(1).join("\n").trim();
 
-// IMPORTANT (Step 2):
-// Link quick picks to the *in-article* H3 headings.
-// Astro/markdown typically generates id attributes for headings by slugifying the heading text.
-// We'll match that by slugifying the product title.
-const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
+  if (!rest) return sectionMd;
+
+  // Split into "paragraph blocks" by blank lines
+  const blocks = rest
+    .split(/\n\s*\n/g)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  if (blocks.length <= 1) {
+    // Nothing to bullet-ize
+    return sectionMd;
+  }
+
+  const intro = blocks[0];
+
+  // Convert remaining blocks into markdown list items, unless they already start with list syntax
+  const items = blocks.slice(1).map((b) => {
+    const trimmed = b.trim();
+    if (/^[-*]\s+/.test(trimmed) || /^\d+\.\s+/.test(trimmed)) return trimmed;
+    // flatten any hard-wrapped lines inside the paragraph
+    const flat = trimmed.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+    return `- ${flat}`;
+  });
+
+  return `${headingLine}\n\n${intro}\n\n${items.join("\n")}`.trim();
+}
+
+// Extract per-pick markdown blocks from the picks section using the contract:
+// <!-- pick_id: X -->
+// ### Title
+// <body...>
+function extractPickBodies(picksSectionMd) {
+  const lines = String(picksSectionMd || "").split("\n");
+
+  const pickIdRe = /^\s*<!--\s*pick_id:\s*([a-z0-9\-_:]+)\s*-->\s*$/i;
+  const h2Re = /^\s*##\s+(.+?)\s*$/;
+
+  // Trim section to just content inside "## The picks" until next H2
+  let start = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(h2Re);
+    if (m && m[1].trim().toLowerCase() === "the picks") {
+      start = i + 1;
+      break;
+    }
+  }
+
+  let end = lines.length;
+  for (let i = start; i < lines.length; i++) {
+    const m = lines[i].match(h2Re);
+    if (m) {
+      end = i;
+      break;
+    }
+  }
+
+  const slice = lines.slice(start, end);
+
+  const out = new Map(); // pick_id -> body markdown (excluding marker + H3 title)
+  let i = 0;
+
+  while (i < slice.length) {
+    const m = slice[i].match(pickIdRe);
+    if (!m) {
+      i++;
+      continue;
+    }
+
+    const pickId = m[1].trim();
+
+    // Expect next non-empty line to be H3, then body until next pick marker or end
+    let k = i + 1;
+    while (k < slice.length && slice[k].trim() === "") k++;
+
+    // Skip the H3 line if present
+    if (k < slice.length && slice[k].trim().startsWith("### ")) {
+      k++;
+    }
+
+    const bodyLines = [];
+    while (k < slice.length && !pickIdRe.test(slice[k])) {
+      bodyLines.push(slice[k]);
+      k++;
+    }
+
+    // Remove <hr /> lines (layout handles spacing)
+    const cleaned = bodyLines
+      .join("\n")
+      .replace(/^\s*<hr\s*\/>\s*$/gim, "")
+      .trim();
+
+    out.set(pickId, cleaned);
+    i = k;
+  }
+
+  return out;
+}
+
+const { pre: prePicksMarkdown, picksSection } = splitBeforePicks(rawBody);
+
+// Split out + normalize the How section
+const { beforeHow, howSection, afterHow } = splitHowChosenSection(prePicksMarkdown);
+const howSectionNormalized = normalizeHowChosenToBullets(howSection);
+
+// Markdown -> HTML (server-side)
+const beforeHowHtml = beforeHow ? marked.parse(beforeHow) : "";
+const howHtml = howSectionNormalized ? marked.parse(howSectionNormalized) : "";
+const afterHowHtml = afterHow ? marked.parse(afterHow) : "";
+
+function mdToHtml(md) {
+  return md ? marked.parse(md) : "";
+}
+
+const pickBodyById = extractPickBodies(picksSection);
 ---
 
 <SiteLayout
@@ -123,81 +252,93 @@ const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
     publishedAt={publishedAt}
     category={category}
     audience={post.data.audience}
-    heroImage={heroImageRaw}
-    heroAlt={heroAlt}
+    heroImage={post.data.heroImage}
+    heroAlt={post.data.heroAlt}
     imageCreditName={post.data.imageCreditName}
     imageCreditUrl={post.data.imageCreditUrl}
-    readingTime={readingTime}
-    toc={toc}
+    readingTime={null}
+    toc={[]}
   >
-    <Content />
+    <!-- Intro (before How section) -->
+    {beforeHowHtml ? <div class="prose" set:html={beforeHowHtml} /> : null}
+
+    <!-- ✅ How chosen callout -->
+    {howHtml ? (
+      <section class="how-box" aria-label="How this list was chosen">
+        <div class="how-prose prose" set:html={howHtml} />
+      </section>
+    ) : null}
+
+    <!-- Any other sections after How (still before picks) -->
+    {afterHowHtml ? <div class="prose" set:html={afterHowHtml} /> : null}
+
+    <!-- Picks -->
+    <section class="picks" aria-label="The picks">
+      <h2 id="the-picks">The picks</h2>
+
+      {products.map((p) => {
+        const pickId = p.pick_id;
+        const bodyMd = pickBodyById.get(pickId) ?? "";
+        const bodyHtml = mdToHtml(bodyMd);
+
+        return (
+          <div class="pick">
+            <h3 id={slugifyHeading(p.title)}>{p.title}</h3>
+
+            <div class="pick-card-wrap">
+              <ProductCard
+                title={p.title}
+                rating={p.rating}
+                reviews_count={p.reviews_count}
+                url={p.url}
+                description={p.description}
+                bodyHtml={bodyHtml}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </section>
+
+    <!-- Quicklink -->
 
     <Fragment slot="sidebar">
-      <div class="side-stack">
-        <div class="sidecard-lite">
-          <div class="side-title">Quick picks</div>
+    <div class="side-stack">
+      <div class="sidecard-lite">
+        <div class="side-title">Quick picks</div>
 
-          <ol class="quick-list" aria-label="Quick picks list">
-            {quickPicks.map((p, idx) => {
-              const id = quickIds[idx];
-              return (
-                <li class="quick-item">
-                  <a href={id ? `#${id}` : "#the-picks"} class="quick-link" title={p.title}>
-                    <span class="quick-num">{idx + 1}.</span>
-                    <span class="quick-title">{p.title}</span>
-                  </a>
+        <ol class="quick-list" aria-label="Quick picks list">
+          {products.map((p, idx) => {
+            const id = slugifyHeading(p.title);
+            return (
+              <li class="quick-item">
+                <a href={id ? `#${id}` : "#the-picks"} class="quick-link" title={p.title}>
+                  <span class="quick-num">{idx + 1}.</span>
+                  <span class="quick-title">{p.title}</span>
+                </a>
 
-                  {(typeof p.rating === "number" || typeof p.reviews_count === "number") && (
-                    <div class="quick-meta">
-                      {typeof p.rating === "number" ? <span>{p.rating.toFixed(1)}★</span> : null}
-                      {typeof p.reviews_count === "number" ? (
-                        <span>
-                          {typeof p.rating === "number" ? " · " : ""}
-                          {p.reviews_count.toLocaleString()} reviews
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                {(typeof p.rating === "number" || typeof p.reviews_count === "number") && (
+                  <div class="quick-meta">
+                    {typeof p.rating === "number" ? <span>{p.rating.toFixed(1)}★</span> : null}
+                    {typeof p.reviews_count === "number" ? (
+                      <span>
+                        {typeof p.rating === "number" ? " · " : ""}
+                        {p.reviews_count.toLocaleString()} reviews
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
 
-          {picks.length > MAX_QUICK_PICKS ? (
-            <p class="quick-more">
-              Showing {MAX_QUICK_PICKS} of {picks.length}. Jump into the list for the rest.
-            </p>
-          ) : null}
-
-          <a href="#the-picks" class="jump-link">Jump to picks section →</a>
-        </div>
-
-        <div class="sidecard-lite sidecard-toc">
-          <div class="side-title">On this page</div>
-          {Array.isArray(toc) && toc.length ? (
-            <nav class="toc">
-              <ol class="toc-list">
-                {toc.map((item) => (
-                  <li class="toc-item">
-                    <a class="toc-link" href={`#${item.id}`}>
-                      {item.text}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-          ) : (
-            <p class="toc-empty">No table of contents is available for this page.</p>
-          )}
-        </div>
+        <a href="#the-picks" class="jump-link">Jump to picks section →</a>
       </div>
-    </Fragment>
+    </div>
 
     <style>
-      .side-stack {
-        display: grid;
-        gap: 12px;
-      }
+      .side-stack { display: grid; gap: 12px; }
 
       .sidecard-lite {
         background: rgba(255, 255, 255, 0.95);
@@ -226,24 +367,11 @@ const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
         scrollbar-gutter: stable;
       }
 
-      .quick-list::-webkit-scrollbar {
-        width: 10px;
-      }
-      .quick-list::-webkit-scrollbar-thumb {
-        background: rgba(17, 24, 39, 0.12);
-        border-radius: 999px;
-        border: 3px solid rgba(255, 255, 255, 0.95);
-      }
-      .quick-list::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
       .quick-item {
         padding: 10px 10px;
         border-radius: 14px;
         border: 1px solid rgba(17, 24, 39, 0.06);
         background: rgba(17, 24, 39, 0.02);
-        transition: background 120ms ease, border-color 120ms ease;
       }
 
       .quick-link {
@@ -263,10 +391,7 @@ const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
         text-underline-offset: 3px;
       }
 
-      .quick-num {
-        color: rgba(55, 65, 81, 0.65);
-        font-weight: 800;
-      }
+      .quick-num { color: rgba(55, 65, 81, 0.65); font-weight: 800; }
 
       .quick-title {
         display: -webkit-box;
@@ -275,18 +400,7 @@ const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
         overflow: hidden;
       }
 
-      .quick-meta {
-        margin-top: 6px;
-        color: rgba(55, 65, 81, 0.7);
-        font-size: 12px;
-      }
-
-      .quick-more {
-        margin: 10px 0 0;
-        font-size: 12px;
-        line-height: 1.5;
-        color: rgba(55, 65, 81, 0.72);
-      }
+      .quick-meta { margin-top: 6px; color: rgba(55, 65, 81, 0.7); font-size: 12px; }
 
       .jump-link {
         display: inline-block;
@@ -296,38 +410,92 @@ const quickIds = quickPicks.map((p) => slugifyHeading(p?.title));
         color: rgb(37, 99, 235);
         text-decoration: none;
       }
-      .jump-link:hover {
-        text-decoration: underline;
-        text-underline-offset: 3px;
+      .jump-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+    </style>
+  </Fragment>
+
+    <style>
+      .picks {
+        max-width: 72ch;
       }
 
-      /* TOC styling */
-      .sidecard-toc .toc {
-        margin-top: 12px;
+      .pick {
+        margin-top: 22px;
       }
-      .sidecard-toc .toc-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 8px;
+
+      .pick-card-wrap {
+        margin: 10px 0 14px;
+        max-width: 72ch;
       }
-      .sidecard-toc .toc-link {
-        font-size: 13px;
-        line-height: 1.3;
-        color: rgba(17, 24, 39, 0.82);
-        text-decoration: none;
+
+      .picks > h2 {
+        margin-top: 40px;
+        margin-bottom: 20px;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #111827;
       }
-      .sidecard-toc .toc-link:hover {
-        color: rgb(37, 99, 235);
-        text-decoration: underline;
-        text-underline-offset: 3px;
+
+      .picks h3 {
+        margin-top: 28px;
+        margin-bottom: 6px;
+        font-size: 20px;
+        font-weight: 750;
+        letter-spacing: -0.01em;
+        color: #111827;
       }
-      .sidecard-toc .toc-empty {
-        margin-top: 10px;
-        font-size: 13px;
+
+      .pick + .pick {
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(17, 24, 39, 0.08);
+      }
+
+      /* -----------------------------
+         How chosen callout styling
+         ----------------------------- */
+      .how-box {
+        max-width: 72ch;
+        margin: 18px 0 18px;
+        padding: 18px 18px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(17, 24, 39, 0.08);
+        background: rgba(17, 24, 39, 0.03);
+      }
+
+      /* Make the H2 inside the box feel “section-ish” */
+      .how-prose :global(h2) {
+        margin: 0 0 10px;
+        font-size: 20px;
+        font-weight: 850;
+        letter-spacing: -0.01em;
+        color: rgba(17, 24, 39, 0.95);
+      }
+
+      /* Bullet points: clear + roomy */
+      .how-prose :global(ul) {
+        margin: 12px 0 0 18px;
+        padding-left: 18px;
+
+        /* ✅ force bullets back on */
+        list-style: disc !important;
+        list-style-position: outside;
+      }
+
+      .how-prose :global(li) {
+        margin: 10px 0;
+      }
+
+      .how-prose :global(li::marker) {
         color: rgba(55, 65, 81, 0.75);
       }
+
+      /* General prose defaults (so markdown renders nicely) */
+      .prose :global(p) { margin: 12px 0; }
+      .prose :global(ul), .prose :global(ol) { margin: 14px 0 14px 20px; padding-left: 18px; }
+      .prose :global(li) { margin: 8px 0; }
+      .prose :global(a) { text-decoration: underline; text-underline-offset: 3px; }
     </style>
   </PostLayout>
 </SiteLayout>

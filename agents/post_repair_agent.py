@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from integrations.openai_adapters import OpenAIJsonLLM
+from lib.markdown_normalizer import normalize_markdown
 
 
 @dataclass(frozen=True)
@@ -79,14 +80,15 @@ class PostRepairAgent:
             f"- Make no more than {self._cfg.max_changes} discrete changes.\n"
             "- Keep the frontmatter block intact unless a frontmatter rule failed.\n"
             "- Do not change file paths, slugs, headings hierarchy, or section ordering.\n"
+            "- IMPORTANT FORMATTING: headings must remain on their own lines.\n"
+            "  Never put paragraph text on the same line as a '##' or '###' heading.\n"
+            "  Ensure a blank line after each heading.\n"
             "\n"
             "Return STRICT JSON with keys:\n"
             '  repaired_markdown: string\n'
             '  changes_made: array of short strings\n'
         )
 
-        # Very explicit repair directives for the most common failure:
-        # make the phrase matching deterministic for QA.
         skip_fix_directive = ""
         if missing_skip_picks:
             skip_fix_directive = (
@@ -94,9 +96,7 @@ class PostRepairAgent:
                 f"- The QA report says these pick numbers are missing skip-guidance: {missing_skip_picks}\n"
                 "- For EACH of those picks, add exactly ONE new sentence that contains the exact substring "
                 "'Skip it if' (case-sensitive) inside that pick's paragraph block.\n"
-                "- The sentence should be truthful and generic (avoid specific specs). Examples:\n"
-                "  - 'Skip it if you only need this occasionally and would rather borrow or go smaller.'\n"
-                "  - 'Skip it if your pet stays indoors and you don't need the extra protection.'\n"
+                "- The sentence should be truthful and generic (avoid specific specs).\n"
                 "- Do not add 'Skip it if' anywhere else (not in intro, not in alternatives).\n"
             )
 
@@ -105,7 +105,6 @@ class PostRepairAgent:
             "missing_skip_pick_numbers": missing_skip_picks,
             "products": products,
             "intro_excerpt": (intro_text or "")[:600],
-            # Provide all picks excerpts to help it locate which ones to edit
             "picks_excerpts": [(p or "")[:700] for p in (picks_texts or [])],
             "draft_markdown": draft_markdown,
             "instructions": (
@@ -129,7 +128,10 @@ class PostRepairAgent:
         changes = data.get("changes_made", [])
         if not isinstance(changes, list):
             changes = []
-
         changes = [c for c in changes if isinstance(c, str)][: self._cfg.max_changes]
+
+        # ✅ Deterministic structural gate: fix glued headings regardless of what the model did.
+        product_titles = [p.get("title", "") for p in (products or []) if isinstance(p, dict)]
+        repaired = normalize_markdown(repaired, product_titles=product_titles)
 
         return {"repaired_markdown": repaired, "changes_made": changes}
