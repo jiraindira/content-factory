@@ -4,7 +4,8 @@ import { defineCollection, z } from "astro:content";
  * POSTS COLLECTION
  * - publishedAt is ALWAYS a Date at runtime
  * - schema is strict enough to protect UI contracts
- * - no surprise unions, no runtime guessing
+ * - supports multi-category posts (categories[])
+ * - keeps legacy category for back-compat
  */
 const posts = defineCollection({
   type: "content",
@@ -12,17 +13,35 @@ const posts = defineCollection({
     title: z.string(),
     description: z.string(),
 
-    // ✅ CRITICAL FIX:
     // Always coerce to Date so .getTime() is safe everywhere
     publishedAt: z.coerce.date(),
 
+    /**
+     * ✅ Multi-category (new)
+     * Canonical field going forward.
+     */
+    categories: z.array(z.string()).default([]),
+
+    /**
+     * ✅ Legacy single category (old)
+     * Kept for backwards compatibility and easy transitions.
+     */
     category: z.string().optional(),
+
     audience: z.string().optional(),
 
     heroImage: z.string().optional(),
+    heroImageHome: z.string().optional(),
+    heroImageCard: z.string().optional(),
+    heroImageSource: z.string().optional(),
+
     heroAlt: z.string().optional(),
     imageCreditName: z.string().optional(),
     imageCreditUrl: z.string().optional(),
+
+    // Optional UI metadata
+    readingTime: z.number().optional(),
+    toc: z.array(z.any()).optional(),
 
     // Products drive ALL pick UI + sidebar + cards
     products: z
@@ -33,7 +52,6 @@ const posts = defineCollection({
           title: z.string(),
 
           /**
-           * URLs are not fully wired for auto-generation yet.
            * Contract:
            * - Valid URL => link is usable
            * - "" => link pending (UI should render disabled CTA / placeholder)
@@ -50,8 +68,6 @@ const posts = defineCollection({
 
     /**
      * Picks are optional metadata for future use.
-     * They are NOT rendered directly today,
-     * but keeping them avoids migration pain later.
      */
     picks: z
       .array(

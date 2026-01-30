@@ -1,0 +1,72 @@
+{
+  "category": "home",
+  "subcategory": "electric heaters",
+  "audience": "UK shoppers",
+  "source_url": "https://www.amazon.co.uk/Electric-Heating/b/ref=dp_bc_5?ie=UTF8&node=49980845031",
+  "products": [
+    {
+      "name": "Hunter Original Tall, Women's Rain Boots",
+      "url": "https://amzn.to/4tfg7f5",
+      "rating": 4.3,
+      "reviews_count": 3663,
+      "price": "£69",
+      "status": "ok"
+    },
+    {
+      "name": "DUNLOP Pricemastor - Unisex Knee High Wellington Rain Boots for Outdoor and Gardening",
+      "url": "https://amzn.to/4rfeJXQ",
+      "rating": 4.5,
+      "reviews_count": 24946,
+      "price": "£16.77",
+      "status": "ok"
+    },
+    {
+      "name": "Golf Umbrella Windproof Large 62/68 Inch, Double Canopy Vented",
+      "url": "https://amzn.to/3M0XYAE",
+      "rating": 4.6,
+      "reviews_count": 12714,
+      "price": "£23.99",
+      "status": "ok"
+    },
+    {
+      "name": "Repel Umbrella Windproof Travel Umbrellas - Compact and Fiberglass Frame",
+      "url": "https://amzn.to/4akYQJQ",
+      "rating": 4.3,
+      "reviews_count": 102129,
+      "price": "£19.99",
+      "status": "ok"
+    },
+    {
+      "name": "Fulton Huntsman Umbrella Black",
+      "url": "https://amzn.to/4q9eyfR",
+      "rating": 4.5,
+      "reviews_count": 1324,
+      "price": "£26.88",
+      "status": "ok"
+    },
+    {
+      "name": "Victoper Adult Lightweight Waterproof Raincoat",
+      "url": "https://amzn.to/3LS43iZ",
+      "rating": 4.4,
+      "reviews_count": 2136,
+      "price": "£14.99",
+      "status": "ok"
+    },
+    {
+      "name": "ANYOO Waterproof Rain Poncho Lightweight Reusable",
+      "url": "https://amzn.to/4tpLRhJ",
+      "rating": 4.4,
+      "reviews_count": 20985,
+      "price": "£18.99",
+      "status": "ok"
+    },
+    {
+      "name": "Kids Raincoats Rain Poncho",
+      "url": "https://amzn.to/49OtDhX",
+      "rating": 4.5,
+      "reviews_count": 1047,
+      "price": "£13.90",
+      "status": "ok"
+    }
+  ]
+}

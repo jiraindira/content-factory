@@ -1,4 +1,25 @@
 {
-  "brand": { "name": "Buying Guides" },
-  "groups": []
+  "brand": {
+    "name": "The Product Wheel",
+    "tagline": "Thoughtful buying guides, powered by real product signals"
+  },
+  "categories": [
+    { "id": "home", "label": "Home" },
+    { "id": "tech", "label": "Tech" },
+    { "id": "pets", "label": "Pets" },
+    { "id": "kids", "label": "Kids" },
+    { "id": "travel", "label": "Travel" },
+    { "id": "health", "label": "Health" }
+  ],
+  "aliases": {
+    "gadgets": "tech",
+    "electronics": "tech"
+  },
+  "groups": [
+    { "key": "home", "label": "Home", "intro": "", "categoryIds": ["home"] },
+    { "key": "tech", "label": "Tech", "intro": "", "categoryIds": ["tech"] },
+    { "key": "pets", "label": "Pets", "intro": "", "categoryIds": ["pets"] },
+    { "key": "family", "label": "Family", "intro": "", "categoryIds": ["kids", "health"] },
+    { "key": "travel", "label": "Travel", "intro": "", "categoryIds": ["travel"] }
+  ]
 }

@@ -161,15 +161,24 @@ def _make_pick_anchor_id(title: str, idx: int) -> str:
 
 
 def _copy_placeholder_hero(post_slug: str) -> tuple[str, str]:
+    """
+    Writes placeholder hero assets for all expected surfaces:
+      - hero.webp
+      - hero_home.webp
+      - hero_card.webp
+      - hero_source.webp
+    Returns (hero_url, alt).
+    """
     PUBLIC_POST_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     post_img_dir = PUBLIC_POST_IMAGES_DIR / post_slug
     post_img_dir.mkdir(parents=True, exist_ok=True)
 
     hero_file = post_img_dir / "hero.webp"
-    hero_url = f"/images/posts/{post_slug}/hero.webp"
+    hero_home_file = post_img_dir / "hero_home.webp"
+    hero_card_file = post_img_dir / "hero_card.webp"
+    hero_source_file = post_img_dir / "hero_source.webp"
 
-    if hero_file.exists():
-        return hero_url, "Hero image for the guide"
+    hero_url = f"/images/posts/{post_slug}/hero.webp"
 
     if not PLACEHOLDER_HERO_PATH.exists():
         raise FileNotFoundError(
@@ -177,7 +186,16 @@ def _copy_placeholder_hero(post_slug: str) -> tuple[str, str]:
             "Add site/public/images/placeholder-hero.webp so the generator can auto-fill missing heroes."
         )
 
-    shutil.copyfile(PLACEHOLDER_HERO_PATH, hero_file)
+    # If any exist, don't thrash the directory. Ensure all four exist though.
+    if not hero_file.exists():
+        shutil.copyfile(PLACEHOLDER_HERO_PATH, hero_file)
+    if not hero_home_file.exists():
+        shutil.copyfile(PLACEHOLDER_HERO_PATH, hero_home_file)
+    if not hero_card_file.exists():
+        shutil.copyfile(PLACEHOLDER_HERO_PATH, hero_card_file)
+    if not hero_source_file.exists():
+        shutil.copyfile(PLACEHOLDER_HERO_PATH, hero_source_file)
+
     return hero_url, "Placeholder hero image"
 
 
@@ -373,9 +391,7 @@ def main():
     FAILED_POSTS_DIR.mkdir(parents=True, exist_ok=True)
 
     post_date = args.date
-    published_at = (
-        datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    )
+    published_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     # 1) Topic (override > CLI topic > agent)
     forced_topic = (args.topic or "").strip() or None
@@ -409,6 +425,10 @@ def main():
         except Exception as e:
             print("Error generating topic:", e)
             return
+
+    # Canonical categories[] (multi-ready)
+    categories = [str(topic_category or "general").strip().lower()]
+    topic_category = categories[0]  # normalize primary
 
     # 2) Affiliate routing (config-driven)
     routing = AffiliateRoutingAgent().run(category=topic_category, topic=topic_text)
@@ -545,9 +565,7 @@ def main():
         print("⚠️ Unable to update central product catalog:", e)
 
     # 7) Frontmatter
-    meta_description = (
-        f"Curated {topic_category.replace('_', ' ')} picks for {normalize_text(topic_audience)}."
-    )
+    meta_description = f"Curated {topic_category.replace('_', ' ')} picks for {normalize_text(topic_audience)}."
 
     astro_products: list[dict] = []
     for idx, p in enumerate(products):
@@ -567,9 +585,7 @@ def main():
                 "url": url,
                 "price": p.get("price") or "—",
                 "rating": float(p.get("rating")) if p.get("rating") is not None else 0.0,
-                "reviews_count": int(p.get("reviews_count"))
-                if p.get("reviews_count") is not None
-                else 0,
+                "reviews_count": int(p.get("reviews_count")) if p.get("reviews_count") is not None else 0,
                 "description": p.get("description") or "",
                 "amazon_search_query": p.get("amazon_search_query"),
             }
@@ -580,7 +596,13 @@ def main():
     md.append(f'title: "{normalize_text(selected_title)}"')
     md.append(f'description: "{meta_description}"')
     md.append(f'publishedAt: "{published_at}"')
+
+    # ✅ Canonical: categories[] (list)
+    md.append(f"categories: {json.dumps(categories, ensure_ascii=False)}")
+
+    # ✅ Back-compat: category (single)
     md.append(f'category: "{topic_category}"')
+
     md.append(f'audience: "{normalize_text(topic_audience)}"')
     md.append(f"products: {json.dumps(astro_products, ensure_ascii=False)}")
     md.append("---")
@@ -683,13 +705,15 @@ def main():
     try:
         llm = OpenAIJsonLLM()
         img = OpenAIImageGenerator()
+
         image_agent = ImageGenerationAgent(
             llm=llm,
             image_gen=img,
             public_images_dir=str(PUBLIC_IMAGES_DIR),
             posts_subdir="posts",
-            width=1400,
-            height=800,
+            # NOTE:
+            # Do NOT override width/height.
+            # ImageGenerationAgent now owns canonical 16:9 source + derived variants.
         )
 
         hero = generate_hero_image(
@@ -701,14 +725,26 @@ def main():
             picks=picks_texts,
             alternatives=None,
         )
-        hero_image_url, hero_alt = hero.hero_image_path, hero.hero_alt
+
+        hero_image_url = hero.hero_image_path
+        hero_home_url = getattr(hero, "hero_image_home_path", None) or hero_image_url
+        hero_card_url = getattr(hero, "hero_image_card_path", None) or hero_image_url
+        hero_source_url = getattr(hero, "hero_source_path", None) or hero_image_url
+        hero_alt = hero.hero_alt
+
         print("✅ Hero image ready:", hero_image_url)
 
     except Exception as e:
         print("⚠️ Hero image generation unavailable, using placeholder:", e)
         hero_image_url, hero_alt = _copy_placeholder_hero(post_slug)
+        hero_home_url = hero_image_url.replace("/hero.webp", "/hero_home.webp")
+        hero_card_url = hero_image_url.replace("/hero.webp", "/hero_card.webp")
+        hero_source_url = hero_image_url.replace("/hero.webp", "/hero_source.webp")
 
     final_markdown = _replace_frontmatter_field(final_markdown, "heroImage", hero_image_url)
+    final_markdown = _replace_frontmatter_field(final_markdown, "heroImageHome", hero_home_url)
+    final_markdown = _replace_frontmatter_field(final_markdown, "heroImageCard", hero_card_url)
+    final_markdown = _replace_frontmatter_field(final_markdown, "heroImageSource", hero_source_url)
     final_markdown = _replace_frontmatter_field(final_markdown, "heroAlt", hero_alt)
 
     if DEFAULT_IMAGE_CREDIT_NAME:
@@ -791,6 +827,7 @@ def main():
                 "title_initial": normalize_text(selected_title),
                 "topic": normalize_text(topic_text),
                 "category": topic_category,
+                "categories": categories,
                 "audience": normalize_text(topic_audience),
                 "file_failed": str(failed_path).replace("\\", "/"),
                 "product_count": len(products),
@@ -826,6 +863,7 @@ def main():
             "title_initial": normalize_text(selected_title),
             "topic": normalize_text(topic_text),
             "category": topic_category,
+            "categories": categories,
             "audience": normalize_text(topic_audience),
             "file": str(file_path).replace("\\", "/"),
             "product_count": len(products),

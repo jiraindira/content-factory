@@ -18,6 +18,28 @@ function formatDate(d: Date) {
     return "";
   }
 }
+
+function normalizeCategoryId(x: unknown) {
+  return String(x || "").trim().toLowerCase();
+}
+
+function prettyCategory(s: string) {
+  if (!s) return "";
+  return s
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bAnd\b/g, "&");
+}
+
+function getPostCategories(post: CollectionEntry<"posts">): string[] {
+  const d: any = post?.data ?? {};
+  if (Array.isArray(d.categories)) {
+    return d.categories.map(normalizeCategoryId).filter(Boolean);
+  }
+  const legacy = normalizeCategoryId(d.category);
+  return legacy ? [legacy] : [];
+}
 ---
 
 <div>
@@ -31,13 +53,46 @@ function formatDate(d: Date) {
   <hr class="mt-4 border-t-2 border-gray-900/25" />
 
   <div class="mt-6 space-y-6">
-    {posts.slice(0, 6).map((post) => (
-      <a href={`/posts/${post.slug}`} class="block group">
-        <div class="text-xs text-gray-500">{formatDate(post.data.publishedAt)}</div>
-        <div class="mt-2 text-base font-semibold leading-snug text-gray-900 group-hover:text-blue-800">
-          {post.data.title}
-        </div>
-      </a>
-    ))}
+    {posts.slice(0, 6).map((post) => {
+      const cats = getPostCategories(post);
+
+      return (
+        <a href={`/posts/${post.slug}`} class="block group">
+          <div class="text-xs text-gray-500">{formatDate(post.data.publishedAt)}</div>
+
+          <div class="mt-2 text-base font-semibold leading-snug text-gray-900 group-hover:text-blue-800">
+            {post.data.title}
+          </div>
+
+          {cats.length > 0 ? (
+            <div class="mt-2 flex flex-wrap gap-2">
+              {cats.slice(0, 2).map((c) => (
+                <span class="cat-pill">{prettyCategory(c)}</span>
+              ))}
+              {cats.length > 2 ? <span class="cat-pill cat-pill-muted">+{cats.length - 2}</span> : null}
+            </div>
+          ) : null}
+        </a>
+      );
+    })}
   </div>
 </div>
+
+<style>
+  .cat-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    background: rgba(17, 24, 39, 0.03);
+    color: rgba(17, 24, 39, 0.75);
+  }
+
+  .cat-pill-muted {
+    background: rgba(17, 24, 39, 0.02);
+    color: rgba(55, 65, 81, 0.65);
+  }
+</style>

@@ -1,8 +1,9 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { Image } from "astro:assets";
-import { groupForCategory, prettyCategory } from "../lib/taxonomy";
+import { groupForCategory, categoryLabel } from "../lib/taxonomy";
 import { getPostHeroImage } from "../lib/postImages";
+import { normalizePostCategories, primaryCategory } from "../lib/normalizeCategories";
 
 const { post, taxonomy } = Astro.props as {
   post: CollectionEntry<"posts">;
@@ -23,21 +24,43 @@ function formatDate(d: Date) {
   }
 }
 
-const g = groupForCategory(taxonomy, post.data.category);
+// ✅ Canonical categories (works for both legacy + new)
+const categories = normalizePostCategories(post, taxonomy);
 
-// Normalize hero image value
-const heroImageRaw =
-  typeof post?.data?.heroImage === "string" && post.data.heroImage.trim().length > 0
-    ? post.data.heroImage.trim()
-    : FALLBACK_HERO;
+// Primary category drives the group badge (keeps it calm)
+const primary = primaryCategory(post, taxonomy);
+const g = groupForCategory(taxonomy, primary);
+
+// Normalize hero image value (prefer homepage crop)
+const heroImageRaw = (() => {
+  const preferred =
+    typeof post?.data?.heroImageHome === "string" && post.data.heroImageHome.trim().length > 0
+      ? post.data.heroImageHome.trim()
+      : null;
+
+  const fallback =
+    typeof post?.data?.heroImage === "string" && post.data.heroImage.trim().length > 0
+      ? post.data.heroImage.trim()
+      : null;
+
+  return preferred || fallback || FALLBACK_HERO;
+})();
 
 const isPublicHero = heroImageRaw.startsWith("/");
 const heroAsset = !isPublicHero ? getPostHeroImage(heroImageRaw) : null;
 
 const safeHeroAlt =
-  (typeof post?.data?.heroAlt === "string" && post.data.heroAlt.trim().length > 0)
+  typeof post?.data?.heroAlt === "string" && post.data.heroAlt.trim().length > 0
     ? post.data.heroAlt.trim()
     : post?.data?.title ?? "";
+
+// Render up to 2 category labels, then +N
+const metaCats = categories.slice(0, 2);
+const extraCount = categories.length > 2 ? categories.length - 2 : 0;
+
+// ✅ Homepage hero: preserve composition (no aggressive cropping)
+const HERO_CLASS =
+  "h-[280px] w-full bg-gray-50 object-contain sm:h-[320px]";
 ---
 
 <a href={`/posts/${post.slug}`} class="block">
@@ -46,7 +69,7 @@ const safeHeroAlt =
       <img
         src={heroImageRaw}
         alt={safeHeroAlt}
-        class="h-[280px] w-full object-cover sm:h-[320px]"
+        class={HERO_CLASS}
         loading="eager"
         decoding="async"
       />
@@ -56,47 +79,48 @@ const safeHeroAlt =
         alt={safeHeroAlt}
         width={heroAsset.width}
         height={heroAsset.height}
-        class="h-[280px] w-full object-cover sm:h-[320px]"
+        class={HERO_CLASS}
         sizes="(min-width: 1024px) 900px, 100vw"
         loading="eager"
         decoding="async"
       />
-    ) : (
-      <img
-        src={FALLBACK_HERO}
-        alt={safeHeroAlt}
-        class="h-[280px] w-full object-cover sm:h-[320px]"
-        loading="eager"
-        decoding="async"
-      />
-    )}
-  </div>
-
-  <div class="mt-6">
-    <div class="flex items-center justify-between gap-6">
-      <div class="text-xs text-gray-500">
-        {formatDate(post.data.publishedAt)}
-        {" · "}
-        {prettyCategory(post.data.category)}
-      </div>
-
-      <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-800">
-        {g.label}
-      </span>
-    </div>
-
-    <h1 class="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.06] text-gray-900 hover:text-blue-800 transition">
-      {post.data.title}
-    </h1>
-
-    {post.data.description ? (
-      <p class="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed max-w-none">
-        {post.data.description}
-      </p>
     ) : null}
 
-    <div class="mt-5 text-sm font-semibold text-blue-700 hover:text-blue-800">
-      Read the guide →
+    <div class="p-8 sm:p-10">
+      <div class="flex flex-wrap items-center gap-2">
+        {g ? (
+          <span class="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-xs font-semibold text-white">
+            {g.label}
+          </span>
+        ) : null}
+
+        {metaCats.map((c) => (
+          <span class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-900">
+            {categoryLabel(taxonomy, c) || c}
+          </span>
+        ))}
+
+        {extraCount > 0 ? (
+          <span class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+            +{extraCount}
+          </span>
+        ) : null}
+      </div>
+
+      <h2 class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+        {post.data.title}
+      </h2>
+
+      {post.data.description ? (
+        <p class="mt-4 text-base leading-relaxed text-gray-700 sm:text-lg">
+          {post.data.description}
+        </p>
+      ) : null}
+
+      <div class="mt-6 flex items-center justify-between gap-6 text-sm text-gray-600">
+        <span class="font-semibold text-gray-900">Read guide →</span>
+        <span>{formatDate(post.data.publishedAt)}</span>
+      </div>
     </div>
   </div>
 </a>

@@ -1,60 +1,105 @@
 ---
-import { getCollection } from "astro:content";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import TopTopicsNav from "../../components/TopTopicsNav.astro";
 import GuideCard from "../../components/GuideCard.astro";
+import { getCollection } from "astro:content";
 import { getTaxonomy } from "../../lib/taxonomy";
+import { normalizePostCategories, primaryCategory } from "../../lib/normalizeCategories";
 
 const taxonomy = await getTaxonomy();
-
 const posts = await getCollection("posts");
-posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
 
-const countsByGroup = taxonomy.groups.reduce((acc, g) => {
-  acc[g.key] = posts.filter((p) => g.categories.includes(p.data.category)).length;
-  return acc;
-}, /** @type {Record<string, number>} */ ({}));
+// Newest first (stable)
+posts.sort((a, b) => {
+  const t = b.data.publishedAt.getTime() - a.data.publishedAt.getTime();
+  if (t !== 0) return t;
+  return b.slug.localeCompare(a.slug);
+});
+
+// Build safe group category sets once
+const groupCategorySets = new Map<string, Set<string>>();
+
+for (const g of taxonomy.groups ?? []) {
+  const raw = (g?.categoryIds ?? g?.categories ?? []) as unknown[];
+
+  const ids = raw
+    .map((c) => String(c ?? "").trim().toLowerCase())
+    .filter(Boolean);
+
+  groupCategorySets.set(String(g.key), new Set(ids));
+}
+
+// Count posts per group (a post counts if ANY of its categories is in the group)
+const countsByGroup: Record<string, number> = {};
+
+for (const g of taxonomy.groups ?? []) {
+  const key = String(g.key);
+  const set = groupCategorySets.get(key) ?? new Set<string>();
+
+  countsByGroup[key] = posts.filter((post) => {
+    const cats = normalizePostCategories(post, taxonomy);
+    // ✅ Safe membership test (no .includes on undefined)
+    return cats.some((c) => set.has(c));
+  }).length;
+}
 
 const navItems = [
   { key: "all", label: "All", count: posts.length, href: "/posts" },
-  ...taxonomy.groups.map((g) => ({
-    key: g.key,
-    label: g.label,
-    count: countsByGroup[g.key] ?? 0,
-    href: `/posts/${g.key}`,
+  ...(taxonomy.groups ?? []).map((g: any) => ({
+    key: String(g.key),
+    label: String(g.label ?? g.key),
+    count: countsByGroup[String(g.key)] ?? 0,
+    href: `/posts/${String(g.key)}`,
   })),
 ];
-
-const seoTitle = `Buying Guides | ${taxonomy.brand.name}`;
-const seoDescription = `Browse ${taxonomy.brand.name} buying guides.`;
 ---
 
-<SiteLayout title={seoTitle} description={seoDescription} canonical="/posts">
-  <div class="max-w-6xl mx-auto px-6 pt-8 pb-16">
-    <header class="max-w-3xl">
-      <h1 class="text-4xl sm:text-5xl font-semibold text-gray-900 leading-[1.12] tracking-[-0.015em]">
-        All buying guides
+<SiteLayout
+  title={taxonomy?.homepage?.seoTitle ?? "All buying guides"}
+  description={taxonomy?.homepage?.seoDescription ?? taxonomy?.brand?.tagline ?? ""}
+  canonical="/posts"
+>
+  <div class="max-w-6xl mx-auto px-6 pt-12">
+    <TopTopicsNav items={navItems} active="all" />
+
+    <header class="mt-10">
+      <h1 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+        All guides
       </h1>
-      <p class="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed">
-        Browse <span class="font-semibold text-gray-900">{posts.length}</span> guides.
+      <p class="mt-3 text-base text-gray-600">
+        Curated picks, updated regularly.
       </p>
     </header>
 
-    <TopTopicsNav items={navItems} active="all" />
+    {posts.length ? (
+      <section class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post) => {
+          const categories = normalizePostCategories(post, taxonomy);
+          const category = primaryCategory(post, taxonomy);
 
-    <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {posts.map((post) => (
-        <GuideCard
-          href={`/posts/${post.slug}`}
-          title={post.data.title}
-          description={post.data.description}
-          category={post.data.category}
-          publishedAt={post.data.publishedAt}
-          products={post.data.products}
-          heroImage={post.data.heroImage}
-          heroAlt={post.data.heroAlt}
-        />
-      ))}
-    </div>
+          return (
+            <GuideCard
+              href={`/posts/${post.slug}`}
+              title={post.data.title}
+              description={post.data.description}
+              category={category}
+              categories={categories}
+              publishedAt={post.data.publishedAt}
+              products={post.data.products}
+              heroImage={post.data.heroImageCard ?? post.data.heroImage}
+              heroAlt={post.data.heroAlt}
+            />
+          );
+        })}
+      </section>
+    ) : (
+      <div class="mt-10 rounded-3xl border border-dashed border-gray-300 bg-white p-12">
+        <h2 class="text-xl font-semibold text-gray-900">No guides yet</h2>
+        <p class="mt-3 text-sm text-gray-600">
+          Add a post in{" "}
+          <code class="rounded bg-gray-100 px-1.5 py-0.5">site/src/content/posts</code>.
+        </p>
+      </div>
+    )}
   </div>
 </SiteLayout>

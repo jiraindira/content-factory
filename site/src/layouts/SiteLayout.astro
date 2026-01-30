@@ -19,6 +19,12 @@ const ogImageUrl =
   typeof ogImage === "string" && ogImage.length > 0
     ? new URL(ogImage, Astro.site ?? "http://localhost").toString()
     : undefined;
+
+const AFFILIATE_DISCLOSURE =
+  "As an Amazon Associate I earn from qualifying purchases. When you buy through our links, we may earn a commission.";
+
+// ✅ Brand icon (public asset)
+const BRAND_ICON_SRC = "/brand/logo-icon.png";
 ---
 
 <html lang="en">
@@ -52,16 +58,13 @@ const ogImageUrl =
       <div class="site-container header-row">
         <a href="/" class="brand" aria-label={`${taxonomy.brand.name} home`}>
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" class="brand-icon" aria-hidden="true">
-              <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" />
-              <circle cx="12" cy="12" r="2" fill="currentColor" />
-              <path
-                d="M12 4v2M20 12h-2M12 20v-2M4 12h2"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-              />
-            </svg>
+            <img
+              src={BRAND_ICON_SRC}
+              alt=""
+              class="brand-icon-img"
+              loading="eager"
+              decoding="async"
+            />
           </span>
 
           <span class="brand-text">
@@ -73,6 +76,12 @@ const ogImageUrl =
         <nav class="site-nav" aria-label="Primary">
           <a href="/posts" class="nav-link">Guides</a>
         </nav>
+      </div>
+
+      <div class="site-disclosure" role="note" aria-label="Affiliate disclosure">
+        <div class="site-container disclosure-row">
+          <span class="disclosure-text">{AFFILIATE_DISCLOSURE}</span>
+        </div>
       </div>
     </header>
 
@@ -94,8 +103,6 @@ const ogImageUrl =
 </html>
 
 <style>
-  /* Keep layout concerns here (chrome + rhythm), not post styling */
-
   .site-header {
     position: sticky;
     top: 0;
@@ -111,60 +118,72 @@ const ogImageUrl =
     padding: 0 24px;
   }
 
+  /* ✅ Slightly taller so brand stack breathes */
   .header-row {
-    height: 64px;
+    height: 78px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 18px;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     text-decoration: none;
     color: inherit;
     min-width: 0;
   }
 
+  /* ✅ Bigger mark + less “padded button” look */
   .brand-mark {
-    height: 40px;
-    width: 40px;
+    height: 44px;
+    width: 44px;
     border-radius: 14px;
-    border: 1px solid rgba(17, 24, 39, 0.10);
-    background: rgba(17, 24, 39, 0.03);
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    background: rgba(255, 255, 255, 0.6);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
+    overflow: hidden;
   }
 
-  .brand-icon {
-    height: 20px;
-    width: 20px;
-    color: rgba(17, 24, 39, 0.85);
+  /*
+    ✅ This is the key fix for “art looks smaller than container”:
+    many PNG logos have transparent padding baked in.
+    We scale the image inside the box so the hamster fills the mark.
+  */
+  .brand-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
   }
 
+  /* ✅ More vertical breathing room between name & tagline */
   .brand-text {
     display: grid;
-    line-height: 1.1;
+    gap: 5px;
+    line-height: 1.15;
     min-width: 0;
+    padding: 2px 0; /* tiny cushion so it doesn’t feel cramped */
   }
 
   .brand-name {
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    font-size: 16px;
-    color: rgba(17, 24, 39, 0.92);
+    font-weight: 950;
+    letter-spacing: -0.02em;
+    font-size: 21px;
+    color: rgba(17, 24, 39, 0.97);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .brand-tagline {
-    font-size: 12px;
-    color: rgba(55, 65, 81, 0.75);
+    font-size: 13.5px;
+    color: rgba(55, 65, 81, 0.80);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -173,25 +192,47 @@ const ogImageUrl =
   .site-nav {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
 
   .nav-link {
     font-size: 13px;
-    font-weight: 700;
-    color: rgba(55, 65, 81, 0.90);
+    font-weight: 850;
+    color: rgba(17, 24, 39, 0.92);
     text-decoration: none;
-    padding: 8px 10px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(17, 24, 39, 0.10);
+    background: rgba(255, 255, 255, 0.75);
   }
 
   .nav-link:hover {
     background: rgba(17, 24, 39, 0.04);
-    color: rgba(17, 24, 39, 0.95);
+    border-color: rgba(17, 24, 39, 0.14);
+  }
+
+  .site-disclosure {
+    border-top: 1px solid rgba(17, 24, 39, 0.08);
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+    background: #f6f1e8;
+  }
+
+  .disclosure-row {
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .disclosure-text {
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: rgba(17, 24, 39, 0.80);
+    text-align: center;
+    font-weight: 700;
   }
 
   .site-main {
-    /* Adds vertical spacing to visually separate page content and PostLayout cards from the header */
     padding: 10px 0 0;
     background:
       radial-gradient(1200px 600px at 20% -10%, rgba(37, 99, 235, 0.08), transparent 60%),
@@ -218,17 +259,41 @@ const ogImageUrl =
 
   .skip-link {
     position: absolute;
-    left: -9999px;
+    left: -999px;
     top: 10px;
-    background: #111827;
-    color: white;
     padding: 10px 12px;
     border-radius: 12px;
-    z-index: 50;
+    background: #111827;
+    color: white;
     text-decoration: none;
+    z-index: 999;
   }
 
   .skip-link:focus {
-    left: 16px;
+    left: 10px;
+  }
+
+  @media (max-width: 520px) {
+    .header-row {
+      height: 70px;
+    }
+
+    .brand-mark {
+      height: 50px;
+      width: 50px;
+      border-radius: 16px;
+    }
+
+    .brand-name {
+      font-size: 18px;
+    }
+
+    .brand-tagline {
+      font-size: 12px;
+    }
+
+    .brand-icon-img {
+      transform: scale(1.18);
+    }
   }
 </style>

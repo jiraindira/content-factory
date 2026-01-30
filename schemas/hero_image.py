@@ -14,6 +14,18 @@ class HeroImageRequest(BaseModel):
 
 class HeroImageResult(BaseModel):
     hero_image_path: str = Field(..., description="Public path, e.g. /images/posts/<slug>/hero.webp")
+    hero_image_home_path: str | None = Field(
+        None,
+        description="Optional public path for homepage/featured surfaces, e.g. /images/posts/<slug>/hero_home.webp",
+    )
+    hero_image_card_path: str | None = Field(
+        None,
+        description="Optional public path for small cards, e.g. /images/posts/<slug>/hero_card.webp",
+    )
+    hero_source_path: str | None = Field(
+        None,
+        description="Optional public path for the canonical source image, e.g. /images/posts/<slug>/hero_source.webp",
+    )
     hero_alt: str = Field(..., description="Alt text for accessibility.")
     hero_prompt: str = Field(..., description="Prompt used (for repro/debug).")
     style_id: str = Field(..., description="Identifier for the house style.")

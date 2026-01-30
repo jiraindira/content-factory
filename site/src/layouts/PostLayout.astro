@@ -6,7 +6,13 @@ const {
   title,
   description,
   publishedAt,
+
+  // ✅ Back-compat: old single category
   category,
+
+  // ✅ New: multi category support
+  categories,
+
   audience,
   heroImage,
   heroAlt,
@@ -35,9 +41,41 @@ const dateLabel =
       ? String(publishedAt)
       : "—";
 
-const categoryLabel = String(category || "").replaceAll("_", " ").trim();
 const showHero = Boolean(isPublicHero || heroAsset);
 const showToc = Array.isArray(toc) && toc.length > 0;
+
+/**
+ * Category normalization:
+ * - Prefer categories[] (multi)
+ * - Fall back to legacy category (single)
+ * - Normalize values to lowercase IDs (safe for routing)
+ */
+function normalizeCategoryId(x) {
+  return String(x || "").trim().toLowerCase();
+}
+
+function humanizeCategory(id) {
+  // Simple default label (taxonomy-driven labels can replace this later)
+  return String(id || "")
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const categoryIdsRaw = Array.isArray(categories) ? categories : category ? [category] : [];
+const categoryIds = categoryIdsRaw.map(normalizeCategoryId).filter(Boolean);
+
+// De-dupe while preserving order
+const seen = new Set();
+const categoriesUnique = categoryIds.filter((c) => {
+  if (seen.has(c)) return false;
+  seen.add(c);
+  return true;
+});
+
+const AFFILIATE_DISCLOSURE =
+  "As an Amazon Associate I earn from qualifying purchases. When you buy through our links, we may earn a commission.";
 ---
 
 <section class="post-shell">
@@ -84,8 +122,24 @@ const showToc = Array.isArray(toc) && toc.length > 0;
 
     <div class="post-meta">
       <span class="post-date">{dateLabel}</span>
-      {categoryLabel ? <span class="post-dot">•</span> : null}
-      {categoryLabel ? <span class="post-cat">{categoryLabel}</span> : null}
+
+      {categoriesUnique.length > 0 ? <span class="post-dot">•</span> : null}
+
+      {categoriesUnique.length > 0 ? (
+        <span class="post-cats">
+          {categoriesUnique.map((c, idx) => (
+            <>
+              <a class="post-cat" href={`/category/${c}`}>
+                {humanizeCategory(c)}
+              </a>
+              {idx < categoriesUnique.length - 1 ? (
+                <span class="post-cat-sep">,</span>
+              ) : null}
+            </>
+          ))}
+        </span>
+      ) : null}
+
       {readingTime ? <span class="post-dot">•</span> : null}
       {readingTime ? <span class="post-rt">{readingTime} min read</span> : null}
     </div>
@@ -98,6 +152,14 @@ const showToc = Array.isArray(toc) && toc.length > 0;
       {audience ? (
         <span class="chip chip-audience">Audience: {audience}</span>
       ) : null}
+
+      {/* ✅ Category chips (multi) */}
+      {categoriesUnique.map((c) => (
+        <a class="chip chip-cat" href={`/category/${c}`}>
+          {humanizeCategory(c)}
+        </a>
+      ))}
+
       <span class="chip">Curated picks</span>
       <span class="chip">Skimmable + practical</span>
     </div>
@@ -107,18 +169,13 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     <main class="post-main">
       <div class="post-article">
         <div class="prose-premium">
-          <!-- All article + pick rendering happens in the page -->
           <slot />
         </div>
       </div>
 
-      <div class="post-disclosure">
+      <div class="post-disclosure" role="note" aria-label="Affiliate disclosure">
         <p class="disc-title">Affiliate disclosure</p>
-        <p class="disc-body">
-          Some links may be affiliate links. If you buy through them, we may earn a
-          commission at no extra cost to you. We only include items that meet our
-          quality thresholds.
-        </p>
+        <p class="disc-body">{AFFILIATE_DISCLOSURE}</p>
       </div>
     </main>
 
@@ -185,6 +242,30 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     opacity: 0.55;
   }
 
+  .post-cats {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: baseline;
+  }
+
+  .post-cat {
+    color: rgba(17, 24, 39, 0.82);
+    text-decoration: none;
+    font-weight: 750;
+  }
+
+  .post-cat:hover {
+    color: rgb(37, 99, 235);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .post-cat-sep {
+    opacity: 0.55;
+    margin-right: 4px;
+  }
+
   .post-title {
     margin-top: 10px;
     font-size: clamp(30px, 3.4vw, 52px);
@@ -200,7 +281,6 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     max-width: 70ch;
   }
 
-  /* ✅ Pills / chips */
   .post-chips {
     margin-top: 14px;
     display: flex;
@@ -219,12 +299,22 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     background: rgba(17, 24, 39, 0.03);
     color: rgba(17, 24, 39, 0.82);
     max-width: 100%;
+    text-decoration: none;
+  }
+
+  .chip:hover {
+    border-color: rgba(37, 99, 235, 0.28);
   }
 
   .chip-audience {
     border-color: rgba(37, 99, 235, 0.22);
     background: rgba(37, 99, 235, 0.06);
     color: rgba(17, 24, 39, 0.88);
+  }
+
+  .chip-cat {
+    border-color: rgba(17, 24, 39, 0.12);
+    background: rgba(17, 24, 39, 0.02);
   }
 
   .post-grid {
@@ -253,7 +343,6 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     line-height: 1.72;
   }
 
-  /* ✅ Hero: shorter banner (your “tall hero” fix) */
   .hero {
     margin-top: 0;
   }
@@ -265,7 +354,7 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     background: rgba(17, 24, 39, 0.02);
 
     width: 100%;
-    height: clamp(160px, 18vh, 240px);
+    height: 360px;
 
     display: flex;
     align-items: center;
@@ -274,7 +363,7 @@ const showToc = Array.isArray(toc) && toc.length > 0;
 
   @media (max-width: 768px) {
     .hero-frame {
-      height: clamp(150px, 16vh, 200px);
+      height: 280px;
     }
   }
 
@@ -302,10 +391,28 @@ const showToc = Array.isArray(toc) && toc.length > 0;
     color: rgba(17, 24, 39, 0.9);
   }
 
-  .hero-frame {
-    height: 360px; /* try 280–360px */
-    overflow: hidden;
-    border-radius: 14px;
+  .post-disclosure {
+    margin-top: 18px;
+    border: 1px solid rgba(17, 24, 39, 0.10);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 16px 18px;
   }
 
+  .disc-title {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: rgba(17, 24, 39, 0.75);
+    margin: 0 0 6px;
+  }
+
+  .disc-body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(17, 24, 39, 0.78);
+    font-weight: 650;
+  }
 </style>

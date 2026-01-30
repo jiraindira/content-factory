@@ -73,13 +73,6 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     </div>
   )}
 
-  <!--
-    PM NOTE:
-    This layout is the “gold standard” behavior:
-    - prose on the left
-    - button on the right (same row on desktop)
-    - button drops under on small screens (via media query)
-  -->
   <div class="content-row">
     <div class="desc-wrap">
       {hasBodyHtml ? (
@@ -100,7 +93,9 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
           Check price →
         </a>
       ) : (
-        <span class="btn btn-disabled" aria-disabled="true">No link</span>
+        <span class="btn btn-disabled" aria-disabled="true">
+          Link coming soon
+        </span>
       )}
     </div>
   </div>
@@ -152,9 +147,6 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     opacity: 0.55;
   }
 
-  /* PM NOTE:
-     Flex layout is intentionally used because it's more predictable than grid
-     when content height varies (long prose, short prose, etc.). */
   .content-row {
     margin-top: 14px;
     display: flex;
@@ -174,12 +166,6 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     justify-items: end;
   }
 
-  /* PM NOTE:
-     Mobile breakpoint: CTA moves below the prose.
-     If this ever “mysteriously” stacks on desktop, it usually means:
-     - CSS not being applied (wrong component rendered)
-     - layout is overriding display on .content-row
-     - or breakpoint styles are being triggered unexpectedly */
   @media (max-width: 520px) {
     .content-row {
       flex-direction: column;
@@ -191,7 +177,6 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     }
   }
 
-  /* fallback text style if you ever use description */
   .desc {
     margin: 0;
     font-size: 18px;
@@ -200,7 +185,6 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     max-width: 72ch;
   }
 
-  /* ✅ styles for the real markdown body (bodyHtml) */
   .pick-prose :global(p) {
     margin: 0 0 12px;
     font-size: 18px;

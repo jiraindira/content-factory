@@ -6,7 +6,13 @@ const {
   href,
   title,
   description,
+
+  // ✅ Back-compat (legacy single)
   category,
+
+  // ✅ New multi-category
+  categories,
+
   publishedAt,
   products,
   heroImage,
@@ -27,9 +33,8 @@ const heroImageRaw =
 const isPublicHero = heroImageRaw.startsWith("/");
 const heroAsset = !isPublicHero ? getPostHeroImage(heroImageRaw) : null;
 
-const safeHeroAlt = (typeof heroAlt === "string" && heroAlt.trim().length > 0)
-  ? heroAlt.trim()
-  : title;
+const safeHeroAlt =
+  typeof heroAlt === "string" && heroAlt.trim().length > 0 ? heroAlt.trim() : title;
 
 function formatDate(d) {
   try {
@@ -55,13 +60,32 @@ function daysAgoUTC(d) {
   return days;
 }
 
+function normalizeCategoryId(x) {
+  return String(x || "").trim().toLowerCase();
+}
+
 function prettyCategory(s) {
   if (!s) return "";
-  return s
+  return String(s)
     .replace(/_/g, " ")
+    .replace(/-/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .replace(/\bAnd\b/g, "&");
 }
+
+// ✅ categories[] preferred, category fallback
+const categoryIdsRaw = Array.isArray(categories) ? categories : category ? [category] : [];
+const categoryIds = categoryIdsRaw
+  .map(normalizeCategoryId)
+  .filter(Boolean);
+
+// De-dupe while preserving order
+const seen = new Set();
+const categoriesUnique = categoryIds.filter((c) => {
+  if (seen.has(c)) return false;
+  seen.add(c);
+  return true;
+});
 
 const publishedLabel = publishedAt ? formatDate(publishedAt) : null;
 
@@ -74,8 +98,6 @@ const freshnessLabel =
       : ageDays === 1
         ? "Published 1 day ago"
         : `Published ${ageDays} days ago`;
-
-const categoryLabel = prettyCategory(category);
 
 const topPick =
   Array.isArray(products) && products.length > 0 && products[0]?.title
@@ -118,10 +140,23 @@ const topPick =
   <div class="mt-4 flex items-center justify-between gap-3">
     <div class="text-xs text-gray-500">{publishedLabel}</div>
 
-    {categoryLabel && (
-      <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700">
-        {categoryLabel}
-      </span>
+    {categoriesUnique.length > 0 && (
+      <div class="flex flex-wrap justify-end gap-2">
+        {categoriesUnique.slice(0, 2).map((c) => (
+          <a
+            href={`/category/${c}`}
+            class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:border-gray-300 hover:text-gray-900"
+          >
+            {prettyCategory(c)}
+          </a>
+        ))}
+
+        {categoriesUnique.length > 2 && (
+          <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-500">
+            +{categoriesUnique.length - 2}
+          </span>
+        )}
+      </div>
     )}
   </div>
 
@@ -135,9 +170,7 @@ const topPick =
   </h3>
 
   {description && (
-    <p class="mt-2 text-sm leading-relaxed text-gray-600">
-      {description}
-    </p>
+    <p class="mt-2 text-sm leading-relaxed text-gray-600">{description}</p>
   )}
 
   {topPick && (

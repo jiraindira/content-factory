@@ -186,7 +186,25 @@ class ManualPostWriter:
 
         raw = json.loads(input_path_p.read_text(encoding="utf-8"))
 
-        category = raw.get("category", "general")
+        # -----------------------------
+        # ✅ Category normalization
+        # - Prefer categories[] (multi-select)
+        # - Back-compat: category (single)
+        # - Always lowercase string[]
+        # -----------------------------
+        raw_categories = raw.get("categories")
+        raw_category = raw.get("category")
+
+        if isinstance(raw_categories, list) and raw_categories:
+            categories = [str(x).strip().lower() for x in raw_categories if str(x).strip()]
+        elif isinstance(raw_category, str) and raw_category.strip():
+            categories = [raw_category.strip().lower()]
+        else:
+            categories = ["general"]
+
+        # Keep a primary category string for prompts/copy/hero generation
+        category = categories[0]
+
         subcategory = raw.get("subcategory")
         audience = raw.get("audience", "UK readers")
         raw_products = raw.get("products", [])
@@ -273,7 +291,8 @@ class ManualPostWriter:
             f'title: "{title}"',
             f'description: "Curated {category.replace("_"," ")} picks for {audience}."',
             f'publishedAt: "{_utc_now_iso()}"',
-            f'category: "{category}"',
+            # ✅ Canonical: categories[]
+            f"categories: {json.dumps(categories, ensure_ascii=False)}",
             f'audience: "{audience}"',
             f"products: {json.dumps(astro_products, ensure_ascii=False)}",
             "---",
@@ -308,7 +327,12 @@ class ManualPostWriter:
         # Content generation
         depth_agent = DepthExpansionAgent()
         modules = [
-            ExpansionModuleSpec(name="intro", enabled=True, max_words=format_spec.max_words_intro, rewrite_mode="upgrade"),
+            ExpansionModuleSpec(
+                name="intro",
+                enabled=True,
+                max_words=format_spec.max_words_intro,
+                rewrite_mode="upgrade",
+            ),
             ExpansionModuleSpec(
                 name="how_we_chose",
                 enabled=True,
@@ -358,7 +382,8 @@ class ManualPostWriter:
             f'title: "{title}"',
             f'description: "Curated {category.replace("_"," ")} picks for {audience}."',
             f'publishedAt: "{_utc_now_iso()}"',
-            f'category: "{category}"',
+            # ✅ Canonical: categories[]
+            f"categories: {json.dumps(categories, ensure_ascii=False)}",
             f'audience: "{audience}"',
             f"products: {json.dumps(astro_products, ensure_ascii=False)}",
             f"picks: {json.dumps(picks_structured, ensure_ascii=False)}",
@@ -375,28 +400,52 @@ class ManualPostWriter:
         ]
         final_markdown = "\n".join(final_md_lines).strip() + "\n"
 
-        # Hero image
+        # Hero image (non-blocking)
         try:
             img_agent = ImageGenerationAgent(
                 llm=llm,
                 image_gen=OpenAIImageGenerator(),
                 public_images_dir=str(PUBLIC_IMAGES_DIR),
                 posts_subdir="posts",
-                width=1400,
-                height=800,
+                # NOTE:
+                # ImageGenerationAgent now generates a canonical 16:9 source
+                # and derives post/home/card variants deterministically.
             )
+
+            # Give the image prompt some real pick context (snippets)
+            pick_snippets: list[str] = []
+            for p in picks_structured[:8]:
+                body = (p.get("body") or "").strip()
+                if body:
+                    pick_snippets.append(body[:240])
+
             hero = generate_hero_image(
                 agent=img_agent,
                 slug=slug,
-                category=category,
+                category=category,  # primary
                 title=title,
                 intro=intro_body,
-                picks=[],
+                picks=pick_snippets,
                 alternatives=None,
             )
+
+            hero_lines = [
+                f'heroImage: "{hero.hero_image_path}"',
+                f'heroAlt: "{hero.hero_alt}"',
+            ]
+
+            if getattr(hero, "hero_image_home_path", None):
+                hero_lines.append(f'heroImageHome: "{hero.hero_image_home_path}"')
+
+            if getattr(hero, "hero_image_card_path", None):
+                hero_lines.append(f'heroImageCard: "{hero.hero_image_card_path}"')
+
+            if getattr(hero, "hero_source_path", None):
+                hero_lines.append(f'heroImageSource: "{hero.hero_source_path}"')
+
             final_markdown = final_markdown.replace(
                 "---",
-                f'---\nheroImage: "{hero.hero_image_path}"\nheroAlt: "{hero.hero_alt}"',
+                "---\n" + "\n".join(hero_lines),
                 1,
             )
         except Exception:
