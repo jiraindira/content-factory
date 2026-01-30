@@ -103,11 +103,11 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
 
 <style>
   .pick {
-    padding: 18px 0 22px;
+    padding: 12px 0 14px; /* ✅ tighter vertical rhythm between picks */
   }
 
   .pick-rating {
-    margin-top: 6px;
+    margin-top: 4px; /* ✅ slightly tighter */
     font-size: 14px;
     color: rgba(55, 65, 81, 0.85);
     display: flex;
@@ -148,10 +148,10 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
   }
 
   .content-row {
-    margin-top: 14px;
+    margin-top: 10px; /* ✅ tighter */
     display: flex;
     align-items: flex-start;
-    gap: 20px;
+    gap: 18px; /* ✅ slightly tighter */
   }
 
   .desc-wrap {
@@ -173,7 +173,7 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
     }
     .cta {
       justify-items: start;
-      margin-top: 10px;
+      margin-top: 8px; /* ✅ tighter */
     }
   }
 
@@ -186,7 +186,7 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
   }
 
   .pick-prose :global(p) {
-    margin: 0 0 12px;
+    margin: 0 0 8px; /* ✅ reduced paragraph spacing (biggest win) */
     font-size: 18px;
     line-height: 1.8;
     color: rgba(17, 24, 39, 0.88);
@@ -199,12 +199,12 @@ const hasDesc = typeof description === "string" && description.trim().length > 0
 
   .pick-prose :global(ul),
   .pick-prose :global(ol) {
-    margin: 12px 0 12px 20px;
+    margin: 10px 0 10px 20px; /* ✅ slightly tighter */
     padding-left: 18px;
   }
 
   .pick-prose :global(li) {
-    margin: 8px 0;
+    margin: 6px 0; /* ✅ slightly tighter */
   }
 
   .pick-prose :global(a) {

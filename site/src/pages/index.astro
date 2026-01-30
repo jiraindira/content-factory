@@ -6,24 +6,27 @@ import TopTopicsNav from "../components/TopTopicsNav.astro";
 import GuideCard from "../components/GuideCard.astro";
 import { getCollection } from "astro:content";
 import { getTaxonomy } from "../lib/taxonomy";
-import { normalizePostCategories, primaryCategory } from "../lib/normalizeCategories";
+import { normalizePostCategories } from "../lib/normalizeCategories";
 
 const taxonomy = await getTaxonomy();
 
 const posts = await getCollection("posts");
-console.log(
-  "DEBUG post categories:",
-  posts.map((p) => ({
-    slug: p.slug,
-    category: p.data.category,
-    categories: p.data.categories,
-  })),
-);
+
+// optional: keep debug noise out of prod
+if (import.meta.env.DEV) {
+  console.log(
+    "DEBUG post categories:",
+    posts.map((p) => ({
+      slug: p.slug,
+      category: p.data.category,
+      categories: p.data.categories,
+    })),
+  );
+}
 
 posts.sort((a, b) => {
   const t = b.data.publishedAt.getTime() - a.data.publishedAt.getTime();
   if (t !== 0) return t;
-  // tie-breaker: stable, deterministic (slug is fine)
   return b.slug.localeCompare(a.slug);
 });
 
@@ -31,16 +34,16 @@ const featured = posts.slice(0, 3);
 const featuredPrimary = featured[0];
 const featuredSecondary = featured.slice(1);
 const latestList = posts.slice(0, 6);
+const moreGuides = posts.slice(3, 15);
 
 // ✅ Count a post if ANY of its categories intersects the group
-// ✅ taxonomy.json uses groups[].categoryIds
 const countsByGroup = taxonomy.groups.reduce((acc, g) => {
   const groupCats = (g.categoryIds ?? g.categories ?? [])
     .map((c) => String(c || "").trim().toLowerCase())
     .filter(Boolean);
 
   acc[g.key] = posts.filter((post) =>
-    normalizePostCategories(taxonomy, post.data).some((c) => groupCats.includes(c)),
+    normalizePostCategories(post, taxonomy).some((c) => groupCats.includes(c)),
   ).length;
 
   return acc;
@@ -105,24 +108,24 @@ const hp = taxonomy.homepage ?? {
 
               {featuredSecondary.length ? (
                 <div class="mt-10 grid gap-6 sm:grid-cols-2">
-                  {featuredSecondary.slice(0, 2).map((post) => {
-                    const categories = normalizePostCategories(taxonomy, post.data);
-                    const category = primaryCategory(post, taxonomy);
+                  {featuredSecondary.slice(0, 2).map((post) => (
+                    <GuideCard post={post} taxonomy={taxonomy} />
+                  ))}
+                </div>
+              ) : null}
 
-                    return (
-                      <GuideCard
-                        href={`/posts/${post.slug}`}
-                        title={post.data.title}
-                        description={post.data.description}
-                        category={category}
-                        categories={categories}
-                        publishedAt={post.data.publishedAt}
-                        products={post.data.products}
-                        heroImage={post.data.heroImageCard ?? post.data.heroImage}
-                        heroAlt={post.data.heroAlt}
-                      />
-                    );
-                  })}
+              {moreGuides.length ? (
+                <div class="mt-12">
+                  <div class="flex items-baseline justify-between gap-6">
+                    <h2 class="text-lg font-semibold text-gray-900">More guides</h2>
+                    <a class="text-sm font-semibold text-gray-900 hover:underline" href="/posts">View all</a>
+                  </div>
+
+                  <div class="mt-6 grid gap-6 sm:grid-cols-2">
+                    {moreGuides.map((post) => (
+                      <GuideCard post={post} taxonomy={taxonomy} />
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </div>

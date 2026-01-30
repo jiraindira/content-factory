@@ -7,86 +7,112 @@ import urllib.request
 from io import BytesIO
 from typing import Any
 
+from dotenv import load_dotenv
 from openai import OpenAI
-from PIL import Image
+
+load_dotenv()
+
+try:
+    # Pillow is optional at import-time, but required for image post-processing.
+    from PIL import Image, ImageOps  # type: ignore
+except Exception:  # pragma: no cover
+    Image = None  # type: ignore
+    ImageOps = None  # type: ignore
 
 
 class OpenAIJsonLLM:
     """
-    JSON-returning chat adapter.
-    Requires OPENAI_API_KEY in env.
+    JSON-only LLM wrapper with compatibility across openai-python SDK versions.
+
+    We prefer the Responses API. JSON-mode configuration differs across versions:
+      - Some versions accept: text={"format": {"type": "json_object"}}
+      - Some older versions do not support Responses JSON formatting and require Chat Completions.
     """
 
-    def __init__(self, *, model: str | None = None) -> None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set.")
-        self._client = OpenAI(api_key=api_key)
+    def __init__(self, *, model: str | None = None, api_key: str | None = None) -> None:
+        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+        self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
 
-        # Configurable without code edits
-        self._model = model or os.getenv("OPENAI_CHAT_MODEL", "gpt-4.1-mini")
+    def complete_json(
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: dict[str, Any] | None = None,  # kept for future JSON schema mode
+    ) -> dict[str, Any]:
+        # 1) Try Responses API with JSON mode via `text.format`
+        text: str | None = None
 
-    def complete_json(self, *, system: str, user: str) -> dict[str, Any]:
-        resp = self._client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.7,
-        )
-        content = resp.choices[0].message.content or "{}"
         try:
-            return json.loads(content)
-        except Exception:
-            return {}
+            resp = self.client.responses.create(
+                model=self.model,
+                input=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                # ✅ Compatible JSON mode for many SDK versions
+                text={"format": {"type": "json_object"}},
+            )
+            # Newer SDKs expose .output_text
+            text = getattr(resp, "output_text", None) or None
+        except TypeError:
+            # SDK doesn't accept `text=...` or Responses.create signature differs
+            text = None
+
+        # 2) Fallback: Chat Completions JSON mode
+        if not text:
+            try:
+                resp2 = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    response_format={"type": "json_object"},
+                )
+                text = resp2.choices[0].message.content
+            except TypeError as e:
+                raise RuntimeError(
+                    "Your installed openai SDK does not support JSON mode via Responses or Chat Completions. "
+                    "Upgrade the `openai` package (recommended), or we can implement a strict JSON parser fallback."
+                ) from e
+
+        if not text:
+            raise RuntimeError("Model returned empty output; cannot parse JSON.")
+
+        try:
+            return json.loads(text)
+        except Exception as e:
+            raise RuntimeError(f"Model did not return valid JSON. Error={e}. Raw={text[:500]}") from e
 
 
 class OpenAIImageGenerator:
     """
-    Image generator adapter returning bytes.
-    Requires OPENAI_API_KEY in env.
+    Generates an image using OpenAI's image model, returning bytes.
 
-    OpenAI image models support only a limited set of discrete sizes.
-    This adapter accepts arbitrary (width,height) and guarantees the returned
-    bytes match the requested dimensions by:
+    Adapter matches ImageGenerationAgent's expected interface:
+      generate(prompt=..., fmt="webp", width=..., height=...) -> bytes
 
-      1) Choosing the closest supported OpenAI size by aspect ratio.
-      2) Center-cropping to the requested aspect ratio.
-      3) Resizing to the exact requested width/height.
-      4) Encoding to the requested format.
-
-    Result: the saved hero assets match your CSS containers deterministically.
+    It requests a provider-supported size, then deterministically crops/resizes
+    to the exact requested dimensions and encodes as webp/png.
     """
 
-    def __init__(self, *, model: str | None = None) -> None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set.")
-        self._client = OpenAI(api_key=api_key)
+    def __init__(self, *, model: str | None = None, api_key: str | None = None) -> None:
+        self.model = model or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1")
+        self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
 
-        # Configurable without code edits
-        self._model = model or os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
-
-    def generate(self, *, prompt: str, fmt: str, width: int, height: int) -> bytes:
+    def generate(self, *, prompt: str, fmt: str = "webp", width: int, height: int) -> bytes:
         fmt_norm = (fmt or "webp").strip().lower()
-        if fmt_norm not in {"webp", "png", "jpg", "jpeg"}:
-            fmt_norm = "webp"
+        if fmt_norm not in ("webp", "png"):
+            raise ValueError(f"Unsupported fmt='{fmt}'. Use 'webp' or 'png'.")
 
-        if width <= 0 or height <= 0:
-            raise ValueError("width and height must be positive integers")
+        size_str = self._size_string(width, height)
 
-        size = self._choose_openai_size(width, height)
-
-        resp = self._client.images.generate(
-            model=self._model,
+        resp = self.client.images.generate(
+            model=self.model,
             prompt=prompt,
-            size=size,
+            size=size_str,
         )
-
-        if not getattr(resp, "data", None) or not resp.data:
-            raise RuntimeError("Image generation response contained no data items.")
 
         first = resp.data[0]
 
@@ -94,73 +120,64 @@ class OpenAIImageGenerator:
         b64 = getattr(first, "b64_json", None) or getattr(first, "base64", None)
         if b64:
             raw = base64.b64decode(b64)
-            return self._postprocess(raw, target_w=width, target_h=height, fmt=fmt_norm)
+            return self._postprocess(raw, width, height, fmt_norm)
 
         # URL-style output
         url = getattr(first, "url", None)
         if url:
             with urllib.request.urlopen(url) as r:
                 raw = r.read()
-            return self._postprocess(raw, target_w=width, target_h=height, fmt=fmt_norm)
+            return self._postprocess(raw, width, height, fmt_norm)
 
         keys: list[str] = []
         try:
             keys = list(first.__dict__.keys())  # type: ignore[attr-defined]
         except Exception:
             pass
+        raise RuntimeError(f"Image response had neither b64 nor url. Available keys={keys}")
 
-        raise RuntimeError(
-            "Image generation response contained neither base64 nor url data. "
-            f"Available fields: {keys or '(unknown)'}"
-        )
+    def _size_string(self, width: int, height: int) -> str:
+        """
+        Pick a supported provider size closest to the requested aspect.
 
-    def _choose_openai_size(self, width: int, height: int) -> str:
-        """Pick a supported OpenAI size based on requested aspect ratio."""
-        ar = width / height
+        Your account supports:
+        - 1024x1024
+        - 1536x1024 (landscape)
+        - 1024x1536 (portrait)
+        - auto
+        """
+        w = max(1, int(width))
+        h = max(1, int(height))
+        aspect = w / h
 
-        # Wide
-        if ar >= 1.20:
+        # Landscape
+        if aspect >= 1.2:
             return "1536x1024"
-        # Tall
-        if ar <= 0.83:
+
+        # Portrait
+        if aspect <= 0.83:
             return "1024x1536"
+
         # Square-ish
         return "1024x1024"
 
-    def _postprocess(self, img_bytes: bytes, *, target_w: int, target_h: int, fmt: str) -> bytes:
-        with Image.open(BytesIO(img_bytes)) as im:
-            im = im.convert("RGB")
+    def _postprocess(self, image_bytes: bytes, width: int, height: int, fmt: str) -> bytes:
+        if Image is None or ImageOps is None:
+            return image_bytes
 
-            src_w, src_h = im.size
-            target_ar = target_w / target_h
-            src_ar = src_w / src_h
+        target_w = max(1, int(width))
+        target_h = max(1, int(height))
 
-            # Center-crop to target aspect ratio
-            if abs(src_ar - target_ar) > 1e-6:
-                if src_ar > target_ar:
-                    new_w = int(round(src_h * target_ar))
-                    new_h = src_h
-                    left = (src_w - new_w) // 2
-                    top = 0
-                else:
-                    new_w = src_w
-                    new_h = int(round(src_w / target_ar))
-                    left = 0
-                    top = (src_h - new_h) // 2
+        with Image.open(BytesIO(image_bytes)) as im:
+            if im.mode not in ("RGB", "RGBA"):
+                im = im.convert("RGB")
 
-                right = left + new_w
-                bottom = top + new_h
-                im = im.crop((left, top, right, bottom))
-
-            # Resize to exact target
-            im = im.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+            fitted = ImageOps.fit(im, (target_w, target_h), method=Image.LANCZOS, centering=(0.5, 0.5))
 
             out = BytesIO()
             if fmt == "png":
-                im.save(out, format="PNG", optimize=True)
-            elif fmt in {"jpg", "jpeg"}:
-                im.save(out, format="JPEG", quality=92, optimize=True, progressive=True)
-            else:
-                im.save(out, format="WEBP", quality=92, method=6)
+                fitted.save(out, format="PNG", optimize=True)
+                return out.getvalue()
 
+            fitted.save(out, format="WEBP", quality=92, method=6)
             return out.getvalue()

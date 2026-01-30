@@ -1,6 +1,8 @@
 ---
 import { Image } from "astro:assets";
 import { getPostHeroImage } from "../lib/postImages";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const {
   title,
@@ -41,7 +43,20 @@ const dateLabel =
       ? String(publishedAt)
       : "—";
 
-const showHero = Boolean(isPublicHero || heroAsset);
+function resolvePublicHero(src) {
+  if (typeof src !== "string" || !src.startsWith("/")) return null;
+
+  // PostLayout.astro is in site/src/layouts/, so ../../public maps to site/public
+  const diskUrl = new URL(`../../public${src}`, import.meta.url);
+  const diskPath = fileURLToPath(diskUrl);
+
+  if (fs.existsSync(diskPath)) return src;
+  return "/images/placeholder-hero.webp";
+}
+
+const resolvedHeroImage = isPublicHero ? resolvePublicHero(heroImage) : null;
+
+const showHero = Boolean((isPublicHero && resolvedHeroImage) || heroAsset);
 const showToc = Array.isArray(toc) && toc.length > 0;
 
 /**
@@ -64,7 +79,9 @@ function humanizeCategory(id) {
 }
 
 const categoryIdsRaw = Array.isArray(categories) ? categories : category ? [category] : [];
-const categoryIds = categoryIdsRaw.map(normalizeCategoryId).filter(Boolean);
+const categoryIds = categoryIdsRaw
+  .map(normalizeCategoryId)
+  .filter(Boolean);
 
 // De-dupe while preserving order
 const seen = new Set();
@@ -73,9 +90,6 @@ const categoriesUnique = categoryIds.filter((c) => {
   seen.add(c);
   return true;
 });
-
-const AFFILIATE_DISCLOSURE =
-  "As an Amazon Associate I earn from qualifying purchases. When you buy through our links, we may earn a commission.";
 ---
 
 <section class="post-shell">
@@ -85,7 +99,7 @@ const AFFILIATE_DISCLOSURE =
         <div class="hero-frame">
           {isPublicHero ? (
             <img
-              src={heroImage}
+              src={resolvedHeroImage ?? heroImage}
               alt={safeHeroAlt}
               loading="eager"
               decoding="async"
@@ -169,13 +183,18 @@ const AFFILIATE_DISCLOSURE =
     <main class="post-main">
       <div class="post-article">
         <div class="prose-premium">
+          <!-- All article + pick rendering happens in the page -->
           <slot />
         </div>
       </div>
 
-      <div class="post-disclosure" role="note" aria-label="Affiliate disclosure">
+      <div class="post-disclosure">
         <p class="disc-title">Affiliate disclosure</p>
-        <p class="disc-body">{AFFILIATE_DISCLOSURE}</p>
+        <p class="disc-body">
+          Some links may be affiliate links. If you buy through them, we may earn a
+          commission at no extra cost to you. We only include items that meet our
+          quality thresholds.
+        </p>
       </div>
     </main>
 
@@ -281,6 +300,7 @@ const AFFILIATE_DISCLOSURE =
     max-width: 70ch;
   }
 
+  /* ✅ Pills / chips */
   .post-chips {
     margin-top: 14px;
     display: flex;
@@ -343,6 +363,7 @@ const AFFILIATE_DISCLOSURE =
     line-height: 1.72;
   }
 
+  /* ✅ Hero */
   .hero {
     margin-top: 0;
   }
@@ -354,7 +375,8 @@ const AFFILIATE_DISCLOSURE =
     background: rgba(17, 24, 39, 0.02);
 
     width: 100%;
-    height: 360px;
+    aspect-ratio: 16 / 5;         /* ✅ wide banner */
+    max-height: 360px;             /* ✅ keeps it from getting too tall on huge screens */
 
     display: flex;
     align-items: center;
@@ -363,15 +385,21 @@ const AFFILIATE_DISCLOSURE =
 
   @media (max-width: 768px) {
     .hero-frame {
-      height: 280px;
+      height: clamp(220px, 40vw, 300px); /* ✅ keep it reasonable on mobile */
     }
   }
 
   .hero-img {
     width: 100%;
     height: 100%;
+    /*
+      Fill the hero frame.
+      Our hero images are generated at the same 16:5 aspect ratio as the frame,
+      so `cover` should fill without ugly letterboxing.
+      If an older/legacy image has a different ratio, it may crop slightly.
+    */
     object-fit: cover;
-    object-position: center 35%;
+    object-position: center;
     display: block;
   }
 
@@ -389,30 +417,5 @@ const AFFILIATE_DISCLOSURE =
 
   .hero-credit-link:hover {
     color: rgba(17, 24, 39, 0.9);
-  }
-
-  .post-disclosure {
-    margin-top: 18px;
-    border: 1px solid rgba(17, 24, 39, 0.10);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.85);
-    padding: 16px 18px;
-  }
-
-  .disc-title {
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: rgba(17, 24, 39, 0.75);
-    margin: 0 0 6px;
-  }
-
-  .disc-body {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.45;
-    color: rgba(17, 24, 39, 0.78);
-    font-weight: 650;
   }
 </style>

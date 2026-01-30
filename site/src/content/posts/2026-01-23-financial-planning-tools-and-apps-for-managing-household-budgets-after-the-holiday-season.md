@@ -1,4 +1,7 @@
 ---
+heroImageHome: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero_home.webp"
+heroImageCard: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero_card.webp"
+heroImageSource: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero_source.webp"
 title: "Keep Your Budget Tidy After Holiday Expenses"
 description: "Curated finance and productivity picks for UK adults looking to improve personal finance management and budgeting."
 publishedAt: "2026-01-24T23:57:50Z"
