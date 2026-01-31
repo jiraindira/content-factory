@@ -161,6 +161,7 @@ Template:
 - [x] M7-T16: Track all outbound link clicks (after consent) via a single delegated click handler. (owner: agent) (estimate: M)
 - [x] M7-T17: Set `PUBLIC_GA_MEASUREMENT_ID` in Vercel (Production + Preview if desired). (owner: human) (estimate: S)
 - [ ] M7-T18: Deploy latest site changes and verify `/cookies` resolves + cookie banner appears on production. (owner: human) (estimate: S)
+- [ ] M7-T19: Fix prod GA env injection (ensure `const GA_ID = "G-..."` in page source) and redeploy. (owner: human) (estimate: S)
 
 ---
 
@@ -177,3 +178,5 @@ Template:
 - 2026-01-31 — agent — Completed: M7-T11, M7-T12, M7-T13 — Evidence: site/src/pages/posts/[...slug].astro, site/src/pages/posts/index.astro, site/src/layouts/PostLayout.astro, `npm run build`
 - 2026-01-31 — agent — Completed: M7-T9, M7-T14, M7-T15, M7-T16 — Evidence: site/src/layouts/SiteLayout.astro, site/src/pages/cookies.astro, `npm run build`
 - 2026-01-31 — agent — Completed: M7-T17 — Evidence: user confirmed Vercel env var `PUBLIC_GA_MEASUREMENT_ID` set
+- 2026-01-31 — agent — Completed: M7-T18 — Evidence: `git push`, `Invoke-WebRequest https://theproductwheel.com/`, `Invoke-WebRequest https://theproductwheel.com/cookies`
+- 2026-01-31 — agent — Correction: Re-opened M7-T18; added M7-T19 — Evidence: `Invoke-WebRequest https://theproductwheel.com/` shows `const GA_ID = ""` (banner stays hidden)
