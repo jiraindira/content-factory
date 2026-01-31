@@ -1,9 +1,8 @@
 ---
 import { Image } from "astro:assets";
 import { getPostHeroImage } from "../lib/postImages";
-import fs from "node:fs";
-import { fileURLToPath } from "node:url";
 
+// ✅ Restore props destructuring (was removed, causing `heroImage is not defined`)
 const {
   title,
   description,
@@ -43,18 +42,11 @@ const dateLabel =
       ? String(publishedAt)
       : "—";
 
-function resolvePublicHero(src) {
-  if (typeof src !== "string" || !src.startsWith("/")) return null;
-
-  // PostLayout.astro is in site/src/layouts/, so ../../public maps to site/public
-  const diskUrl = new URL(`../../public${src}`, import.meta.url);
-  const diskPath = fileURLToPath(diskUrl);
-
-  if (fs.existsSync(diskPath)) return src;
-  return "/images/placeholder-hero.webp";
-}
-
-const resolvedHeroImage = isPublicHero ? resolvePublicHero(heroImage) : null;
+// On Vercel, don't fs.existsSync() the public directory at runtime.
+// Render the URL and rely on browser onerror fallback.
+const resolvedHeroImage = isPublicHero
+  ? (typeof heroImage === "string" && heroImage ? heroImage : "/images/placeholder-hero.webp")
+  : null;
 
 const showHero = Boolean((isPublicHero && resolvedHeroImage) || heroAsset);
 const showToc = Array.isArray(toc) && toc.length > 0;
@@ -99,11 +91,12 @@ const categoriesUnique = categoryIds.filter((c) => {
         <div class="hero-frame">
           {isPublicHero ? (
             <img
-              src={resolvedHeroImage ?? heroImage}
+              src={resolvedHeroImage ?? "/images/placeholder-hero.webp"}
               alt={safeHeroAlt}
               loading="eager"
               decoding="async"
               class="hero-img"
+              onerror="this.onerror=null;this.src='/images/placeholder-hero.webp';"
             />
           ) : (
             <Image
@@ -117,7 +110,7 @@ const categoriesUnique = categoryIds.filter((c) => {
               decoding="async"
             />
           )}
-        </div>
+        </div>  
 
         {(imageCreditName || imageCreditUrl) && (
           <figcaption class="hero-credit">
