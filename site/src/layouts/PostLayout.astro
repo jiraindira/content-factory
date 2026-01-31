@@ -94,7 +94,7 @@ const categoriesUnique = categoryIds.filter((c) => {
               src={resolvedHeroImage ?? "/images/placeholder-hero.webp"}
               alt={safeHeroAlt}
               width="1600"
-              height="500"
+              height="900"
               loading="eager"
               decoding="async"
               class="hero-img"
@@ -405,8 +405,8 @@ const categoriesUnique = categoryIds.filter((c) => {
     background: rgba(17, 24, 39, 0.02);
 
     width: 100%;
-    aspect-ratio: 16 / 5;         /* ✅ wide banner */
-    max-height: 360px;             /* ✅ keeps it from getting too tall on huge screens */
+    aspect-ratio: 16 / 9;         /* ✅ match generated hero images */
+    max-height: 420px;             /* ✅ keeps it from getting too tall on huge screens */
 
     display: flex;
     align-items: center;
@@ -415,7 +415,7 @@ const categoriesUnique = categoryIds.filter((c) => {
 
   @media (max-width: 768px) {
     .hero-frame {
-      height: clamp(220px, 40vw, 300px); /* ✅ keep it reasonable on mobile */
+      height: clamp(200px, 56.25vw, 320px); /* ✅ 16:9-based height on mobile */
     }
   }
 
@@ -424,8 +424,7 @@ const categoriesUnique = categoryIds.filter((c) => {
     height: 100%;
     /*
       Fill the hero frame.
-      Our hero images are generated at the same 16:5 aspect ratio as the frame,
-      so `cover` should fill without ugly letterboxing.
+      Our hero images are generated at 16:9, matching the frame.
       If an older/legacy image has a different ratio, it may crop slightly.
     */
     object-fit: cover;
