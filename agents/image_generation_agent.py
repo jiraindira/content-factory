@@ -214,6 +214,13 @@ class ImageGenerationAgent:
     # Image derivation
     # ----------------------------
 
+    def ensure_variants_from_source(self, disk_source: Path, post_dir: Path) -> None:
+        """Regenerate derived hero variants from an existing canonical source image.
+
+        This does not call the image model; it only crops/resizes deterministically.
+        """
+        self._ensure_variants_from_source(disk_source, post_dir)
+
     def _ensure_variants_from_source(self, disk_source: Path, post_dir: Path) -> None:
         src_bytes = disk_source.read_bytes()
         self._write_variants_from_bytes(post_dir, src_bytes)
@@ -222,7 +229,13 @@ class ImageGenerationAgent:
         for v in self._VARIANTS:
             out_path = post_dir / v.filename
             if out_path.exists() and out_path.stat().st_size > 0:
-                continue
+                try:
+                    with Image.open(out_path) as existing:
+                        if existing.size == (v.width, v.height):
+                            continue
+                except Exception:
+                    # If the file can't be opened/validated, regenerate it.
+                    pass
             derived = self._crop_resize(src_bytes, target_w=v.width, target_h=v.height)
             self._atomic_write(out_path, derived)
 
