@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-01-29T23:22:07Z",
+  "updated_at": "2026-01-31T21:50:47Z",
   "items": {
     "amazon_uk:snake-plant-sansevieria-indoor-potted-plant": {
       "provider": "amazon_uk",
@@ -545,6 +545,94 @@
       "provider": "amazon_uk",
       "status": "ok",
       "title": "Zorax Waterproof Non-Slip Wellies for Kids",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:golf-umbrella-windproof-large-6268-inch-double-canopy-vented": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Golf Umbrella Windproof Large 62/68 Inch, Double Canopy Vented",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:repel-umbrella-windproof-travel-umbrellas-compact-and-fiberglass-frame": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Repel Umbrella Windproof Travel Umbrellas - Compact and Fiberglass Frame",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:fulton-huntsman-umbrella-black": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Fulton Huntsman Umbrella Black",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:victoper-adult-lightweight-waterproof-raincoat": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Victoper Adult Lightweight Waterproof Raincoat",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:anyoo-waterproof-rain-poncho-lightweight-reusable": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "ANYOO Waterproof Rain Poncho Lightweight Reusable",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:kids-raincoats-rain-poncho": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Kids Raincoats Rain Poncho",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:cosowe-rain-poncho-raincoats-for-adults": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Cosowe Rain Poncho Raincoats for Adults",
+      "affiliate_url": "",
+      "rating": 0.0,
+      "reviews_count": 0,
+      "price": "",
+      "asin": "",
+      "notes": ""
+    },
+    "amazon_uk:outdoor-ventures-softshell-ladies-rain-jacket": {
+      "provider": "amazon_uk",
+      "status": "ok",
+      "title": "Outdoor Ventures Softshell Ladies Rain Jacket",
       "affiliate_url": "",
       "rating": 0.0,
       "reviews_count": 0,

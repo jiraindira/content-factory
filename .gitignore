@@ -14,6 +14,7 @@ build/
 *.egg-info/
 .venv/
 venv/
+.venv_validate/
 
 # Env files
 .env
@@ -38,6 +39,11 @@ output/generated_markdown/
 output/tmp/
 outputs/
 output/blog_*.md
+output/debug_image.webp
+output/debug/
+
+# Local debug/test hero generations
+site/public/images/posts/image-test/
 
 
 # Logs
