@@ -66,7 +66,8 @@ class ImageGenerationAgent:
     # Derived variants (deterministic)
     _VARIANTS = (
         HeroVariant("hero.webp", 1600, 900),
-        HeroVariant("hero_home.webp", 1200, 800),
+        # Home/featured surfaces render as 16:9 (`aspect-video`) across the site
+        HeroVariant("hero_home.webp", 1200, 675),
         HeroVariant("hero_card.webp", 800, 600),
     )
 
