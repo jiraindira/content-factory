@@ -99,6 +99,7 @@ class OpenAIImageGenerator:
 
     def __init__(self, *, model: str | None = None, api_key: str | None = None) -> None:
         self.model = model or os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1")
+        self.fallback_model = os.environ.get("OPENAI_IMAGE_MODEL_FALLBACK", "").strip() or None
         self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
 
     def generate(self, *, prompt: str, fmt: str = "webp", width: int, height: int) -> bytes:
@@ -108,11 +109,39 @@ class OpenAIImageGenerator:
 
         size_str = self._size_string(width, height)
 
-        resp = self.client.images.generate(
-            model=self.model,
-            prompt=prompt,
-            size=size_str,
-        )
+        def _call_images_generate(*, model: str, size: str):
+            return self.client.images.generate(
+                model=model,
+                prompt=prompt,
+                size=size,
+            )
+
+        last_err: Exception | None = None
+        candidates: list[tuple[str, str]] = [(self.model, size_str)]
+
+        # Common fallback if an account doesn't support the chosen size.
+        if size_str != "auto":
+            candidates.append((self.model, "auto"))
+
+        # Optional model fallback (some orgs don't have access to gpt-image-1).
+        if self.fallback_model and self.fallback_model != self.model:
+            candidates.append((self.fallback_model, size_str))
+            if size_str != "auto":
+                candidates.append((self.fallback_model, "auto"))
+
+        resp = None
+        for m, s in candidates:
+            try:
+                resp = _call_images_generate(model=m, size=s)
+                break
+            except Exception as e:  # noqa: BLE001
+                last_err = e
+                resp = None
+
+        if resp is None:
+            raise RuntimeError(
+                f"OpenAI image generation failed. model={self.model!r} fallback_model={self.fallback_model!r} size={size_str!r}."
+            ) from last_err
 
         first = resp.data[0]
 

@@ -14,7 +14,7 @@ from agents.preflight_qa_agent import PreflightQAAgent
 from agents.post_repair_agent import PostRepairAgent, PostRepairConfig
 
 from integrations.openai_adapters import OpenAIJsonLLM, OpenAIImageGenerator
-from pipeline.image_step import generate_hero_image
+from pipeline.image_step import ensure_post_hero_is_present
 
 from lib.product_catalog import ProductCatalog
 from lib.post_formats import get_format_spec
@@ -430,7 +430,7 @@ class ManualPostWriter:
         ]
         final_markdown = "\n".join(final_md_lines).strip() + "\n"
 
-        # Hero image (non-blocking)
+        # Hero image (non-blocking + self-healing)
         try:
             img_agent = ImageGenerationAgent(
                 llm=llm,
@@ -449,8 +449,9 @@ class ManualPostWriter:
                 if body:
                     pick_snippets.append(body[:240])
 
-            hero = generate_hero_image(
+            hero = ensure_post_hero_is_present(
                 agent=img_agent,
+                public_dir=str(PUBLIC_IMAGES_DIR),
                 slug=slug,
                 category=category,  # primary
                 title=title,
@@ -478,8 +479,9 @@ class ManualPostWriter:
                 "---\n" + "\n".join(hero_lines),
                 1,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            # Never block publishing, but make failures visible.
+            self._log(f"🟠 Hero image generation failed; using placeholder if available. Error: {e}")
 
         # QA + repair (non-blocking)
         qa = PreflightQAAgent(strict=False)
