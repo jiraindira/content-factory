@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
@@ -84,12 +85,18 @@ def ensure_hero_assets_exist(
             expected_after = expected
             for p in expected_after:
                 if _missing_or_empty(p):
-                    # backfill any missing derivative with placeholder
+                    # Regen did not create all expected assets.
+                    # We'll fall through and backfill missing ones with placeholder.
+                    print(
+                        f"🟠 Hero regen incomplete for slug '{slug}'; will backfill missing assets with placeholder."
+                    )
                     break
             else:
                 return paths
-        except Exception:
+        except Exception as e:
             # fall through to placeholder backfill
+            print(f"🟠 Hero regen failed for slug '{slug}'; using placeholder. Error: {e}")
+            print(traceback.format_exc())
             pass
 
     # Placeholder backfill (deterministic)
@@ -101,7 +108,8 @@ def ensure_hero_assets_exist(
         )
 
     for p in expected:
-        _ensure_parent(p)
-        shutil.copyfile(placeholder_disk, p)
+        if _missing_or_empty(p):
+            _ensure_parent(p)
+            shutil.copyfile(placeholder_disk, p)
 
     return paths
