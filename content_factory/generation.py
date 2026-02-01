@@ -79,6 +79,40 @@ def _assert_thought_leadership_is_non_affiliate(*, artifact: ContentArtifact) ->
             raise ValueError(f"Thought leadership output contains buying-guide token: {tok!r}")
 
 
+def _ensure_footer_disclaimer_is_last(*, brand: BrandProfile, artifact: ContentArtifact) -> None:
+    policy = brand.disclaimer_policy
+    if not policy.required:
+        return
+
+    disclaimer = (policy.disclaimer_text or "").strip()
+    if not disclaimer:
+        return
+
+    if "footer" not in [loc.value for loc in policy.locations]:
+        return
+
+    if not artifact.sections:
+        return
+
+    last_section = artifact.sections[-1]
+    if not last_section.blocks:
+        return
+
+    idx = None
+    for i, b in enumerate(last_section.blocks):
+        if b.type == BlockType.callout and (b.text or "").strip() == disclaimer:
+            idx = i
+            break
+
+    if idx is None:
+        return
+
+    # Move the disclaimer to the end if generation appended content after it.
+    if idx != len(last_section.blocks) - 1:
+        block = last_section.blocks.pop(idx)
+        last_section.blocks.append(block)
+
+
 def _find_section(artifact: ContentArtifact, section_id: str) -> Section | None:
     for sec in artifact.sections:
         if sec.id == section_id:
@@ -199,6 +233,8 @@ def _generate_thought_leadership(*, brand: BrandProfile, request: ContentRequest
 
     _set_claims(artifact, claims)
 
+    _ensure_footer_disclaimer_is_last(brand=brand, artifact=artifact)
+
     _assert_thought_leadership_is_non_affiliate(artifact=artifact)
     _assert_generation_contract_met(artifact=artifact, path=GenerationPath.thought_leadership)
 
@@ -260,6 +296,8 @@ def _generate_product_recommendation(*, brand: BrandProfile, request: ContentReq
             )
         ],
     )
+
+    _ensure_footer_disclaimer_is_last(brand=brand, artifact=artifact)
 
     _assert_generation_contract_met(artifact=artifact, path=GenerationPath.product_recommendation)
 
