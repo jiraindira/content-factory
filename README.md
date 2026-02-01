@@ -47,7 +47,7 @@ poetry run python -m unittest
 This step may fetch live URLs defined in the brand profile and is **robots.txt enforced** with User-Agent `AIContentFactoryFetcher-1.0`.
 
 ```bash
-poetry run python scripts/build_brand_context.py --brand content_factory/brands/alisa_amouage.yaml
+poetry run content-factory build-context --brand content_factory/brands/alisa_amouage.yaml
 ```
 
 Output:
@@ -63,9 +63,27 @@ This step reads only:
 - Cached BrandContextArtifact JSON
 
 ```bash
-poetry run python scripts/run_content_factory.py \
+poetry run content-factory run \
   --brand content_factory/brands/alisa_amouage.yaml \
   --request content_factory/requests/alisa_2026-02-01.yaml
+```
+
+### 6) Validate (optional but recommended for debugging)
+
+```bash
+poetry run content-factory validate-brand --brand content_factory/brands/alisa_amouage.yaml
+poetry run content-factory validate-request \
+  --brand content_factory/brands/alisa_amouage.yaml \
+  --request content_factory/requests/alisa_2026-02-01.yaml
+```
+
+### 7) Onboard a new client (scaffold YAML)
+
+```bash
+poetry run content-factory onboard \
+  --brand-id acme_consulting \
+  --domains-supported leadership \
+  --domain-primary leadership
 ```
 
 Output:

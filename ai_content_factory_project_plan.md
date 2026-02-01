@@ -431,13 +431,13 @@ Make the system usable and safe.
 
 ### Tasks
 
-* [ ] CLI: onboard a new client (scaffold brand YAML + request YAML + folders)
-* [ ] CLI: validate brand files
-* [ ] CLI: validate run requests
-* [ ] CLI: execute a run
-* [ ] Onboarding documentation
-* [ ] Error reference guide
-* [ ] Project README
+* [x] CLI: onboard a new client (scaffold brand YAML + request YAML + folders) (`content_factory/onboarding.py`, `content_factory/cli.py`)
+* [x] CLI: validate brand files (`content_factory/cli.py`)
+* [x] CLI: validate run requests (`content_factory/cli.py`)
+* [x] CLI: execute a run (`content_factory/cli.py`)
+* [x] Onboarding documentation (`docs/content_factory_onboarding.md`)
+* [x] Error reference guide (`docs/content_factory_errors.md`)
+* [x] Project README (`README.md`)
 
 ### Definition of Done
 
@@ -511,6 +511,6 @@ This milestone is lower priority than onboarding/operational CLI work (Milestone
 
 Await explicit approval to begin:
 
-**→ Approve Milestone 6**
+**→ Approve Milestone 7**
 
 No work will start before approval.

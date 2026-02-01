@@ -20,5 +20,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 generate-post = "cli:generate_post"
+content-factory = "content_factory.cli:main"
 
 
