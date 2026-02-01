@@ -102,6 +102,7 @@ These rules apply globally.
 * At the end of each milestone, the agent must:
 
   * Mark all tasks as completed or not completed
+  * Update this plan file to reflect completion (task checkboxes + “Next Action”)
   * Explicitly confirm the Definition of Done is met
   * List any discovered but unexecuted work
 
@@ -449,6 +450,12 @@ This milestone is explicitly **not required** for v1, which remains manual links
 * [ ] Add deterministic test fixtures + unit tests for API adapters (no live network in tests)
 * [ ] Add config switches to keep v1 behavior defaulting to manual links only (API automation opt-in)
 
+### Definition of Done
+
+* Affiliate API automation can be enabled explicitly (opt-in)
+* Manual-links-only remains the default behavior
+* Unit tests cover adapter behavior without live network calls
+
 ---
 
 ## 4. Rules for Plan Evolution
@@ -466,6 +473,6 @@ This milestone is explicitly **not required** for v1, which remains manual links
 
 Await explicit approval to begin:
 
-**→ Approve Milestone 1**
+**→ Approve Milestone 2**
 
 No work will start before approval.
