@@ -54,6 +54,58 @@ def _truncate_title_max_chars(title: str, max_chars: int) -> str:
     return cut.rstrip(" .!?,;:")
 
 
+def _truncate_text_max_chars(text: str, max_chars: int) -> str:
+    s = (text or "").strip()
+    if not s:
+        return s
+    if len(s) <= max_chars:
+        return s
+    cut = s[:max_chars].rstrip()
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0].rstrip()
+    return cut.rstrip(" .!?,;:")
+
+
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_MD_COMMENT_RE = re.compile(r"<!--([\s\S]*?)-->")
+_MD_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _plain_text_from_markdown(md: str) -> str:
+    s = (md or "").strip()
+    if not s:
+        return ""
+    s = _MD_COMMENT_RE.sub(" ", s)
+    s = _MD_LINK_RE.sub(r"\1", s)
+    s = _MD_TAG_RE.sub(" ", s)
+    s = s.replace("`", "").replace("*", "").replace("_", "")
+    s = re.sub(r"\s+", " ", s.replace("\n", " ")).strip()
+    return s
+
+
+def _derive_description(*, intro_md: str, category: str, audience: str, max_chars: int = 140) -> str:
+    txt = _plain_text_from_markdown(intro_md)
+    if txt:
+        # Prefer the first sentence if it looks meaningful.
+        m = re.match(r"^(.+?[.!?])\s+", txt)
+        if m and 60 <= len(m.group(1)) <= max_chars:
+            return m.group(1).strip()
+        return _truncate_text_max_chars(txt, max_chars)
+
+    # Fallback (should be rare): still better than the previous boilerplate.
+    cat = category.replace("_", " ")
+    return _truncate_text_max_chars(
+        f"A practical guide to choosing {cat} products for {audience}.",
+        max_chars,
+    )
+
+
+def _yaml_single_quoted(value: str) -> str:
+    s = (value or "").replace("\r\n", " ").replace("\n", " ").strip()
+    s = re.sub(r"\s+", " ", s)
+    return "'" + s.replace("'", "''") + "'"
+
+
 def _is_valid_http_url(url: str) -> bool:
     """
     Hard-fail URL validator: requires a fully-qualified http(s) URL with a netloc.
@@ -315,10 +367,14 @@ class ManualPostWriter:
         format_spec = get_format_spec(format_id)
 
         # Draft scaffold (includes picks placeholders so DepthExpansion can author them)
+        draft_description = seed_description or user_hint_description or ""
+        if not draft_description:
+            draft_description = _derive_description(intro_md=seed_description or "", category=category, audience=audience)
+
         md = [
             "---",
             f'title: "{title}"',
-            f'description: "Curated {category.replace("_"," ")} picks for {audience}."',
+            f"description: {_yaml_single_quoted(draft_description)}",
             f'publishedAt: "{_utc_now_iso()}"',
             # ✅ Canonical: categories[]
             f"categories: {json.dumps(categories, ensure_ascii=False)}",
@@ -408,10 +464,16 @@ class ManualPostWriter:
             picks_structured.append({"pick_id": pid, "body": pick_bodies.get(pid, "").strip()})
 
         # Minimal markdown body: Intro + How only
+        final_description = seed_description or user_hint_description or _derive_description(
+            intro_md=intro_body,
+            category=category,
+            audience=audience,
+            max_chars=160,
+        )
         final_md_lines = [
             "---",
             f'title: "{title}"',
-            f'description: "Curated {category.replace("_"," ")} picks for {audience}."',
+            f"description: {_yaml_single_quoted(final_description)}",
             f'publishedAt: "{_utc_now_iso()}"',
             # ✅ Canonical: categories[]
             f"categories: {json.dumps(categories, ensure_ascii=False)}",

@@ -4,6 +4,7 @@ import { Image } from "astro:assets";
 import { groupForCategory, categoryLabel } from "../lib/taxonomy";
 import { getPostHeroImage } from "../lib/postImages";
 import { normalizePostCategories, primaryCategory } from "../lib/normalizeCategories";
+import { getPostCardDescription } from "../lib/postExcerpt";
 
 const { post, taxonomy } = Astro.props as {
   post: CollectionEntry<"posts">;
@@ -58,6 +59,8 @@ const extraCount = categories.length > 2 ? categories.length - 2 : 0;
 
 // Hero styling: match our generated hero aspect (16:9) for cleaner crops
 const HERO_CLASS = "w-full aspect-video object-cover bg-gray-50";
+
+const cardDescription = getPostCardDescription(post);
 ---
 
 <a href={`/posts/${post.slug}`} class="block">
@@ -102,9 +105,9 @@ const HERO_CLASS = "w-full aspect-video object-cover bg-gray-50";
         {post.data.title}
       </h2>
 
-      {post.data.description ? (
+      {cardDescription ? (
         <p class="mt-3 text-base leading-relaxed text-gray-700 sm:text-lg">
-          {post.data.description}
+          {cardDescription}
         </p>
       ) : null}
 

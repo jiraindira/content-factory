@@ -4,6 +4,7 @@ import { Image } from "astro:assets";
 import { groupForCategory, categoryLabel } from "../lib/taxonomy";
 import { getPostHeroImage } from "../lib/postImages";
 import { normalizePostCategories, primaryCategory } from "../lib/normalizeCategories";
+import { getPostCardDescription } from "../lib/postExcerpt";
 
 const { post: rawPost, taxonomy: rawTaxonomy } = Astro.props as {
   post?: CollectionEntry<"posts">;
@@ -110,6 +111,8 @@ const safeHeroAlt =
     ? post.data.heroAlt.trim()
     : post?.data?.title ?? "";
 
+const cardDescription = post ? getPostCardDescription(post) : "";
+
 // ✅ KEEP ONLY THIS ONE META BLOCK (delete all duplicated copies below in your file)
 const metaCats = categories.slice(0, 2);
 const extraCount = categories.length > 2 ? categories.length - 2 : 0;
@@ -165,9 +168,9 @@ const extraCount = categories.length > 2 ? categories.length - 2 : 0;
           {post.data.title}
         </h2>
 
-        {post.data.description ? (
+        {cardDescription ? (
           <p class="mt-2 text-sm leading-relaxed text-gray-700 sm:text-base">
-            {post.data.description}
+            {cardDescription}
           </p>
         ) : null}
 

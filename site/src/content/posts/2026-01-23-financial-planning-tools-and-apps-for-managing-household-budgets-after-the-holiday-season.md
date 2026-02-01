@@ -3,7 +3,7 @@ heroImageHome: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-m
 heroImageCard: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero_card.webp"
 heroImageSource: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero_source.webp"
 title: "Keep Your Budget Tidy After Holiday Expenses"
-description: "Curated finance and productivity picks for UK adults looking to improve personal finance management and budgeting."
+description: 'January has a funny way of making last month’s “treat yourself” decisions feel extremely loud.'
 publishedAt: "2026-01-24T23:57:50Z"
 categories: ["finance_and_productivity"]
 audience: "UK adults looking to improve personal finance management and budgeting"
@@ -11,7 +11,6 @@ products: [{"pick_id": "pick-1-money-manager-expense-budget-planner-notebook", "
 heroImage: "/images/posts/2026-01-23-financial-planning-tools-and-apps-for-managing-household-budgets-after-the-holiday-season/hero.webp"
 heroAlt: "Editorial illustration for a finance_and_productivity buying guide."
 ---
-
 ## Intro
 
 January has a funny way of making last month’s “treat yourself” decisions feel extremely loud. If you’ve ever tried to sort your household budget with half a spreadsheet, three banking apps, and a vague sense of dread—same. The good news: you don’t need a dramatic overhaul, just a few tools that make the boring bits easier and the numbers less slippery. Here’s a short, practical list—one notebook, a couple of calculators (depending on how deep you want to go), plus a few sanity-savers for digital assets and not misplacing the wallet in the first place.

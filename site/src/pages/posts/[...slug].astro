@@ -6,6 +6,7 @@ import ProductCard from "../../components/ProductCard.astro";
 import { marked } from "marked";
 import { getTaxonomy } from "../../lib/taxonomy";
 import { normalizePostCategories } from "../../lib/normalizeCategories";
+import { extractIntroExcerptFromBody, isGenericDescription } from "../../lib/postExcerpt";
 import {
   buildArticleJsonLd,
   buildBreadcrumbList,
@@ -135,7 +136,7 @@ const breadcrumbJsonLd = buildBreadcrumbList(breadcrumbItems);
 const articleJsonLd = buildArticleJsonLd({
   canonicalUrl,
   headline: String(post.data.title),
-  description: post.data.description ? String(post.data.description) : undefined,
+  description: undefined, // set below after we compute a better fallback
   imageUrl: ogImageUrl,
   datePublished: datePublishedIso,
   dateModified: datePublishedIso,
@@ -146,6 +147,18 @@ const articleJsonLd = buildArticleJsonLd({
 
 // Raw markdown body (no frontmatter)
 const rawBody = String(post.body ?? "");
+
+// Prefer a real excerpt when description is generic.
+const computedExcerpt = extractIntroExcerptFromBody(rawBody);
+const seoDescription = (() => {
+  const rawDesc = post?.data?.description ? String(post.data.description) : "";
+  if (rawDesc && !isGenericDescription(rawDesc)) return rawDesc;
+  // Slightly longer on detail pages
+  return computedExcerpt ? computedExcerpt.slice(0, 160).trim() : rawDesc;
+})();
+
+// Patch JSON-LD description with the final chosen value.
+articleJsonLd.description = seoDescription || undefined;
 
 // -----------------------------
 // Deterministic parsing helpers
@@ -368,7 +381,7 @@ if (Array.isArray(picks) && picks.length > 0) {
 
 <SiteLayout
   title={post.data.title}
-  description={post.data.description}
+  description={seoDescription}
   canonical={canonical}
   ogImage={ogImage}
   ogType="article"
@@ -380,7 +393,7 @@ if (Array.isArray(picks) && picks.length > 0) {
 
   <PostLayout
     title={post.data.title}
-    description={post.data.description}
+    description={seoDescription}
     publishedAt={publishedAt}
     category={category}
     audience={post.data.audience}

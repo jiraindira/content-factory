@@ -5,6 +5,7 @@ import GuideCard from "../../components/GuideCard.astro";
 import { getCollection } from "astro:content";
 import { getTaxonomy } from "../../lib/taxonomy";
 import { normalizePostCategories } from "../../lib/normalizeCategories"; // <-- remove primaryCategory
+import { getPostCardDescription } from "../../lib/postExcerpt";
 import {
   buildBreadcrumbList,
   buildCollectionPageJsonLd,
@@ -127,9 +128,10 @@ const listJsonLd = buildCollectionPageJsonLd({
       <section id="guides-grid" class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((post) => {
           const cats = normalizePostCategories(post, taxonomy);
+          const cardDescription = getPostCardDescription(post);
           const haystack = [
             post.data.title,
-            post.data.description,
+            cardDescription,
             cats.join(" "),
           ]
             .filter(Boolean)
