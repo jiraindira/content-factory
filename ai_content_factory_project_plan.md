@@ -411,10 +411,10 @@ Decouple generation from formatting and destinations.
 ### Tasks
 
 * [x] Define `ContentArtifact` output contract (done in Milestone 1)
-* [ ] Blog adapter (Astro‑compatible markdown)
-* [ ] Email adapter (export-only: subject/preheader/body_html/body_text; no direct sending in v1)
-* [ ] LinkedIn adapter (long‑form text)
-* [ ] Enforce destination rules from matrix
+* [x] Blog adapter (Astro‑compatible markdown)
+* [x] Email adapter (export-only: subject/preheader/body_html/body_text; no direct sending in v1)
+* [x] LinkedIn adapter (long‑form text)
+* [x] Enforce destination rules from matrix (adapter target matching + request validation)
 
 ### Definition of Done
 
@@ -511,6 +511,6 @@ This milestone is lower priority than onboarding/operational CLI work (Milestone
 
 Await explicit approval to begin:
 
-**→ Approve Milestone 5**
+**→ Approve Milestone 6**
 
 No work will start before approval.

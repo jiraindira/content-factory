@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from content_factory.adapters.dispatch import render_for_request, write_delivery
 from content_factory.artifact_io import write_content_artifact
 from content_factory.artifact_validation import validate_artifact_against_specs
 from content_factory.brand_context import BrandContextArtifact, artifact_path_for_brand
@@ -58,7 +59,11 @@ def main() -> int:
     validate_artifact_against_specs(brand=brand, request=request, artifact=artifact)
     out_path = write_content_artifact(repo_root=repo_root, artifact=artifact)
 
+    delivery = render_for_request(brand=brand, request=request, artifact=artifact)
+    delivery_path = write_delivery(repo_root=repo_root, delivery=delivery)
+
     print(f"Wrote ContentArtifact: {out_path}")
+    print(f"Wrote Delivery Output: {delivery_path}")
     return 0
 
 
