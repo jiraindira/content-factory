@@ -72,8 +72,8 @@ These decisions are final unless this plan is explicitly revised.
 * **Validation:** Unit tests only (v1)
 * **Persistence:** BrandContextArtifact persisted as JSON on disk
 * **Source fetching:** Live URL fetching is allowed (read-only)
-* **HTTP User-Agent:** Deterministic and fixed to `AIContentFactoryFetcher/1.0`
-* **Robots.txt compliance:** Evaluate robots for User-Agent `AIContentFactoryFetcher/1.0`; if disallowed, hard‑fail (no bypass)
+* **HTTP User-Agent:** Deterministic and fixed to `AIContentFactoryFetcher-1.0`
+* **Robots.txt compliance:** Evaluate robots for User-Agent `AIContentFactoryFetcher-1.0`; if disallowed, hard‑fail (no bypass)
 * **Repo strategy:** Single repo, modularised (no fork yet)
 * **Date validation:** Uses local system time (system clock); past dates hard‑fail
 * **Topics:** Allowlist-only (auto-pick, if used, must choose from the allowlist)
@@ -347,23 +347,29 @@ Convert raw brand sources into a deterministic BrandContextArtifact.
 
 ### Tasks
 
-* [ ] Define `BrandContextArtifact` schema
-* [ ] Implement source loader (public URLs + local files)
-* [ ] Enforce `robots.txt` compliance per configured User-Agent (hard-fail on disallow)
+* [x] Define `BrandContextArtifact` schema (`content_factory/brand_context.py`)
+* [x] Implement source loader (public URLs + local files) (`content_factory/brand_context.py`)
+* [x] Enforce `robots.txt` compliance per configured User-Agent (hard-fail on disallow)
 * [ ] Extract:
 
   * key terminology
   * positioning statements
   * allowed / disallowed claims
   * voice signals
-* [ ] Persist artifact as JSON per brand
-* [ ] Manual refresh only (v1)
+* [x] Extract:
+
+  * key terminology
+  * positioning statements
+  * allowed / disallowed claims (v1: placeholder signals only)
+  * voice signals (v1: lightweight HTML-derived signals)
+* [x] Persist artifact as JSON per brand (`content_factory/brand_context.py`)
+* [x] Manual refresh only (v1) (`scripts/build_brand_context.py`)
 
 ### Definition of Done
 
 * Writing agents never read raw URLs
 * Brand understanding is cached and repeatable
-* Missing, unreachable, or robots.txt‑disallowed sources hard‑fail (evaluated for `AIContentFactoryFetcher/1.0`)
+* Missing, unreachable, or robots.txt‑disallowed sources hard‑fail (evaluated for `AIContentFactoryFetcher-1.0`)
 
 ---
 
@@ -473,6 +479,6 @@ This milestone is explicitly **not required** for v1, which remains manual links
 
 Await explicit approval to begin:
 
-**→ Approve Milestone 2**
+**→ Approve Milestone 4**
 
 No work will start before approval.
