@@ -152,6 +152,8 @@ M3 ─ Brand Understanding & Source Ingestion
 M4 ─ Pipeline Refactor (Spec‑Driven)
 M5 ─ Delivery Adapters
 M6 ─ Operational Tooling & Docs
+M7 ─ Affiliate API Product Automation (Backlog)
+M8 ─ Single-Recipient Email Sending (Backlog)
 ```
 
 Milestones are sequential and must not overlap.
@@ -408,9 +410,9 @@ Decouple generation from formatting and destinations.
 
 ### Tasks
 
-* [ ] Define `ContentArtifact` output contract
+* [x] Define `ContentArtifact` output contract (done in Milestone 1)
 * [ ] Blog adapter (Astro‑compatible markdown)
-* [ ] Email adapter (plain + HTML‑ready)
+* [ ] Email adapter (export-only: subject/preheader/body_html/body_text; no direct sending in v1)
 * [ ] LinkedIn adapter (long‑form text)
 * [ ] Enforce destination rules from matrix
 
@@ -464,6 +466,29 @@ This milestone is explicitly **not required** for v1, which remains manual links
 * Affiliate API automation can be enabled explicitly (opt-in)
 * Manual-links-only remains the default behavior
 * Unit tests cover adapter behavior without live network calls
+
+---
+
+## 📨 MILESTONE 8: Single-Recipient Email Sending (Optional, Backlog)
+
+**Goal**
+Optionally send an email-ready output to a single client recipient.
+
+This is explicitly **not part of Milestone 5**. Milestone 5 is export-only.
+
+### Tasks
+
+* [ ] (added) Decide on transport: SMTP vs provider API (SendGrid/Mailgun/etc)
+* [ ] (added) Add opt-in send command (e.g. `scripts/send_single_email.py`) that accepts one `--to` address
+* [ ] (added) Store credentials via environment variables only (no secrets in repo)
+* [ ] (added) Add unit tests with mocked SMTP/provider client (no live email sending in tests)
+* [ ] (added) Update docs with setup + safety notes (rate limits, failures, retries)
+
+### Definition of Done
+
+* Email sending is opt-in and single-recipient only
+* No recipient list management is implemented or stored
+* Tests cover success + failure paths without live network calls
 
 ---
 
