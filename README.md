@@ -1,20 +1,86 @@
-# AI Affiliate Engine
+# AI Content Factory (and legacy Affiliate Engine)
 
-Deterministic, agent-assisted pipeline for generating affiliate blog posts.
+This repository contains two related systems:
 
-This repo supports **manual** and **automated (future)** workflows.  
-The manual workflow is optimized for control: *you provide the products, agents do the writing.*
+1) **AI Content Factory (current direction):** a spec-driven content compiler that takes a Brand YAML + Request YAML and produces a robust `ContentArtifact` JSON.
+2) **Legacy AI Affiliate Engine:** the earlier manual affiliate post pipeline (kept for now).
+
+The project operating contract and milestone plan lives in `ai_content_factory_project_plan.md`.
 
 ---
 
-## Manual pipeline (current, single step)
+## Quickstart: AI Content Factory (step by step)
 
-### What you edit
+### 0) Prerequisites
 
-You provide all inputs up-front in a single file:
+- Python 3.11+
+- (Recommended) Poetry
 
-data/inputs/manual/post_input.json
+### 1) Install dependencies
 
+Using Poetry:
+
+```bash
+poetry install
+```
+
+Or using pip (in a virtualenv):
+
+```bash
+python -m venv .venv
+./.venv/Scripts/python.exe -m pip install -r requirements.txt
+```
+
+### 2) Run unit tests (required)
+
+```bash
+poetry run python -m unittest
+```
+
+### 3) Pick a brand + request (examples included)
+
+- Brand: `content_factory/brands/alisa_amouage.yaml` or `content_factory/brands/everyday_buying_guide.yaml`
+- Request: `content_factory/requests/alisa_2026-02-01.yaml` or `content_factory/requests/everyday_buying_guide_2026-02-01.yaml`
+
+### 4) Build the BrandContextArtifact (cached JSON)
+
+This step may fetch live URLs defined in the brand profile and is **robots.txt enforced** with User-Agent `AIContentFactoryFetcher-1.0`.
+
+```bash
+poetry run python scripts/build_brand_context.py --brand content_factory/brands/alisa_amouage.yaml
+```
+
+Output:
+
+- `content_factory/artifacts/<brand_id>.json`
+
+### 5) Compile a ContentArtifact
+
+This step reads only:
+
+- Brand YAML
+- Request YAML
+- Cached BrandContextArtifact JSON
+
+```bash
+poetry run python scripts/run_content_factory.py \
+  --brand content_factory/brands/alisa_amouage.yaml \
+  --request content_factory/requests/alisa_2026-02-01.yaml
+```
+
+Output:
+
+- `content_factory/outputs/<run_id>.json` (defaults to the request filename stem)
+
+---
+
+## Legacy: Manual affiliate post pipeline
+
+The legacy manual workflow is optimized for control: you provide the products, agents do the writing.
+
+### 1) Edit the input file
+
+`data/inputs/manual/post_input.json`
 
 Minimal example (extend as needed):
 
@@ -42,50 +108,27 @@ Minimal example (extend as needed):
     }
   ]
 }
+```
 
-Required per product
+Per product:
 
-title
-url
-rating
-reviews_count
+- Required: `title`, `url`, `rating`, `reviews_count`
+- Optional: `price`, `description`
 
-Optional
-price
-description
+### 2) Generate the post
 
-2. Generate the post (single command)
+```bash
 poetry run python -m scripts.write_manual_post
+```
 
 Optional flags:
+
+```bash
 poetry run python -m scripts.write_manual_post --dry-run
 poetry run python -m scripts.write_manual_post --date 2026-01-25
 poetry run python -m scripts.write_manual_post --input data/inputs/manual/post_input.json
+```
 
-Defaults:
---date → today
---input → data/inputs/manual/post_input.json
+### 3) Output
 
-3. Output
-
-A fully-written post is created at:
-site/src/content/posts/<date>-<slug>.md
-
-Each post includes:
-Astro frontmatter (title, description, hero image, products)
-Structured product cards
-Affiliate links
-Long-form copy
-QA pass (non-blocking)
-
-What the pipeline does
-
-When you run write_manual_post, the system:
-Reads post_input.json
-Generates a title and slug
-Ensures products exist in the catalog
-Builds an Astro markdown scaffold
-Expands content using LLM agents
-Generates a hero image
-Runs Preflight QA (+ optional repair)
-Writes the final .md file
+- `site/src/content/posts/<date>-<slug>.md`

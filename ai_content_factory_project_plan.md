@@ -106,6 +106,9 @@ These rules apply globally.
   * Explicitly confirm the Definition of Done is met
   * List any discovered but unexecuted work
 
+* Each milestone that changes behavior must include **new or updated unit tests** that cover the new rules/contract.
+* A milestone is not "complete" until `python -m unittest` is run and green.
+
 ### 1.2 Git Discipline
 
 * One milestone = one or more atomic commits
