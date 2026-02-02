@@ -3,23 +3,40 @@ const { items = [], active = "all" } = Astro.props;
 // items: [{ key, label, href, count }]
 ---
 
-<nav>
-  <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
-    {items.map((it) => (
-      <a
-        href={it.href}
-        class:list={[
-          "font-bold tracking-tight hover:text-blue-700",
-          active === it.key ? "text-blue-700" : "text-gray-900",
-        ]}
-      >
-        {it.label}
-        {typeof it.count === "number" ? (
-          <span class="ml-1 text-gray-400 font-semibold">({it.count})</span>
-        ) : null}
-      </a>
-    ))}
-  </div>
-
-  <hr class="mt-5 border-t-2 border-gray-900/25" />
+<nav aria-label="Browse topics">
+  <ul class="flex flex-wrap items-center gap-2 text-sm">
+    {items.map((it) => {
+      const isActive = active === it.key;
+      return (
+        <li>
+          <a
+            href={it.href}
+            aria-current={isActive ? "page" : undefined}
+            class:list={[
+              "group inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-semibold",
+              "transition-colors",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+              isActive
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-900 hover:bg-gray-200",
+            ]}
+          >
+            <span class="tracking-tight">{it.label}</span>
+            {typeof it.count === "number" ? (
+              <span
+                class:list={[
+                  "rounded-full px-2 py-0.5 text-xs font-bold",
+                  isActive
+                    ? "bg-white/20 text-white"
+                    : "bg-gray-200 text-gray-700 group-hover:bg-gray-300",
+                ]}
+              >
+                {it.count}
+              </span>
+            ) : null}
+          </a>
+        </li>
+      );
+    })}
+  </ul>
 </nav>
