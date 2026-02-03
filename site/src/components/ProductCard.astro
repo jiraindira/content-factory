@@ -49,7 +49,15 @@ function normalizeText(s) {
 
 const titleNorm = normalizeText(title);
 const descNorm = normalizeText(description);
-const showDesc = hasDesc && descNorm.length > 0 && descNorm !== titleNorm;
+const isRedundantDesc =
+  !hasDesc ||
+  descNorm.length === 0 ||
+  descNorm === titleNorm ||
+  (descNorm.length >= 6 && titleNorm.includes(descNorm)) ||
+  (titleNorm.length >= 6 && descNorm.includes(titleNorm)) ||
+  descNorm.length < 12;
+
+const showDesc = hasDesc && !isRedundantDesc;
 ---
 
 <article class="pick">
