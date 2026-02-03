@@ -244,7 +244,7 @@ function normalizeHowChosenToBullets(sectionMd) {
   const lines = sectionMd.split("\n");
   if (!lines.length) return sectionMd;
 
-  // First line should be the H2
+  // First line is usually the H2. We'll render the heading in the accordion summary instead.
   const headingLine = lines[0];
   const rest = lines.slice(1).join("\n").trim();
 
@@ -270,7 +270,11 @@ function normalizeHowChosenToBullets(sectionMd) {
     return `- ${flat}`;
   });
 
-  return `${headingLine}\n\n${intro}\n\n${items.join("\n")}`.trim();
+  // Drop the H2 to avoid duplicating the summary label.
+  // If the first line wasn't an H2 for some reason, keep it.
+  const hasH2 = /^\s*##\s+/.test(String(headingLine || ""));
+  const out = `${intro}\n\n${items.join("\n")}`.trim();
+  return hasH2 ? out : `${headingLine}\n\n${out}`.trim();
 }
 
 /**
@@ -429,11 +433,14 @@ if (Array.isArray(picks) && picks.length > 0) {
     toc={[]}
     introHtml={introHtml}
   >
-    <!-- ✅ How chosen callout -->
+    <!-- ✅ How chosen accordion (closed by default) -->
     {howHtml ? (
-      <section class="how-box" aria-label="How this list was chosen">
-        <div class="how-prose prose" set:html={howHtml} />
-      </section>
+      <details class="how-accordion">
+        <summary class="how-summary">How this list was chosen</summary>
+        <div class="how-body">
+          <div class="how-prose prose" set:html={howHtml} />
+        </div>
+      </details>
     ) : null}
 
     <!-- Any other sections after How (still before picks) -->
@@ -642,23 +649,50 @@ if (Array.isArray(picks) && picks.length > 0) {
       /* -----------------------------
          How chosen callout styling
          ----------------------------- */
-      .how-box {
+      .how-accordion {
         max-width: 72ch;
         margin: 18px 0 18px;
-        padding: 18px 18px 14px;
         border-radius: 16px;
         border: 1px solid rgba(17, 24, 39, 0.08);
         background: rgba(17, 24, 39, 0.03);
+        overflow: hidden;
       }
 
-      /* Make the H2 inside the box feel “section-ish” */
-      .how-prose :global(h2) {
-        margin: 0 0 10px;
-        font-size: 20px;
+      .how-summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 14px 16px;
+        font-size: 14px;
         font-weight: 850;
         letter-spacing: -0.01em;
-        color: rgba(17, 24, 39, 0.95);
+        color: rgba(17, 24, 39, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
       }
+
+      .how-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .how-summary::after {
+        content: "+";
+        font-size: 18px;
+        line-height: 1;
+        opacity: 0.75;
+      }
+
+      details[open] > .how-summary::after {
+        content: "–";
+      }
+
+      .how-body {
+        padding: 0 16px 14px;
+      }
+
+      /* If an H2 slips through for any reason, don't show it (summary is the heading). */
+      .how-prose :global(h2) { display: none; }
 
       /* Bullet points: clear + roomy */
       .how-prose :global(ul) {
