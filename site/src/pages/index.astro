@@ -107,16 +107,16 @@ const hp = taxonomy.homepage ?? {
     <!-- CATEGORIES (placecards) -->
     {categoryItems.length ? (
       <section class="mt-10">
-        <div class="flex items-baseline justify-between gap-6">
-          <h2 class="text-lg font-semibold text-gray-900">Categories</h2>
-          <a class="text-sm font-semibold text-gray-900 hover:underline" href="/posts">
-            View all
-          </a>
-        </div>
+        <h2 class="text-lg font-semibold text-gray-900">Categories</h2>
 
         <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {categoryItems.map((it) => (
-            <CategoryPlacecard label={it.label} href={it.href} count={it.count} />
+            <CategoryPlacecard
+              categoryKey={it.key}
+              label={it.label}
+              href={it.href}
+              count={it.count}
+            />
           ))}
         </div>
       </section>
