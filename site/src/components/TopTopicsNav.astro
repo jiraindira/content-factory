@@ -1,57 +1,29 @@
 ---
 const { items = [], active = "all" } = Astro.props;
 // items: [{ key, label, href, count }]
-import TopicIcon from "./TopicIcon.astro";
-
-const iconClass = "h-5 w-5";
 ---
 
 <nav aria-label="Browse topics">
-  <ul class="flex flex-wrap items-center gap-2 text-sm">
+  <ul class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
     {items.map((it) => {
       const isActive = active === it.key;
+      const labelWithCount =
+        typeof it.count === "number" ? `${it.label} (${it.count})` : String(it.label);
+
       return (
         <li>
           <a
             href={it.href}
             aria-current={isActive ? "page" : undefined}
-            aria-label={
-              typeof it.count === "number"
-                ? `${it.label} (${it.count})`
-                : String(it.label)
-            }
             class:list={[
-              "group inline-flex items-center gap-3 rounded-full px-3 py-2 font-semibold",
-              "border transition-colors",
+              "font-semibold transition-colors",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
               isActive
-                ? "border-blue-600 bg-blue-600 text-white"
-                : "border-gray-200 bg-white text-gray-900 hover:border-gray-300 hover:bg-gray-50",
+                ? "text-blue-700"
+                : "text-gray-700 hover:text-gray-950",
             ]}
           >
-            <span class="flex flex-col items-center leading-none">
-              <TopicIcon name={it.key} className={iconClass} />
-              <span
-                class:list={[
-                  "sr-only md:not-sr-only md:mt-1 md:block md:text-[11px] md:font-semibold md:tracking-tight",
-                  isActive ? "md:text-white/90" : "md:text-gray-700",
-                ]}
-              >
-                {it.label}
-              </span>
-            </span>
-            {typeof it.count === "number" ? (
-              <span
-                class:list={[
-                  "rounded-full px-2 py-0.5 text-xs font-bold",
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-100 text-gray-600 group-hover:bg-gray-200",
-                ]}
-              >
-                {it.count}
-              </span>
-            ) : null}
+            {labelWithCount}
           </a>
         </li>
       );
