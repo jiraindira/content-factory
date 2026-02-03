@@ -47,6 +47,48 @@ function normalizeText(s) {
     .trim();
 }
 
+function stripHtmlTags(s) {
+  return String(s || "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function decodeBasicEntities(s) {
+  return String(s || "")
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .trim();
+}
+
+function stripRedundantLeadingTitleBlock(html, titleText) {
+  const raw = String(html || "").trim();
+  if (!raw) return "";
+
+  // Look for a leading single block that often repeats the product name.
+  const m = raw.match(/^\s*<(p|h3|h4)\b[^>]*>([\s\S]*?)<\/\1>\s*/i);
+  if (!m) return raw;
+
+  const inner = m[2] ?? "";
+  const firstText = normalizeText(decodeBasicEntities(stripHtmlTags(inner)));
+  const tNorm = normalizeText(titleText);
+
+  const isRedundant =
+    firstText.length > 0 &&
+    tNorm.length > 0 &&
+    (firstText === tNorm ||
+      (firstText.length >= 6 && tNorm.includes(firstText)) ||
+      (tNorm.length >= 6 && firstText.includes(tNorm)));
+
+  return isRedundant ? raw.slice(m[0].length).trim() : raw;
+}
+
 const titleNorm = normalizeText(title);
 const descNorm = normalizeText(description);
 const isRedundantDesc =
@@ -58,6 +100,10 @@ const isRedundantDesc =
   descNorm.length < 12;
 
 const showDesc = hasDesc && !isRedundantDesc;
+
+const cleanedBodyHtml = hasBodyHtml
+  ? stripRedundantLeadingTitleBlock(bodyHtml, title)
+  : "";
 ---
 
 <article class="pick">
@@ -95,7 +141,7 @@ const showDesc = hasDesc && !isRedundantDesc;
   <div class="content-row">
     <div class="desc-wrap">
       {hasBodyHtml ? (
-        <div class="pick-prose" set:html={bodyHtml} />
+        <div class="pick-prose" set:html={cleanedBodyHtml} />
       ) : showDesc ? (
         <p class="desc">{description}</p>
       ) : null}
