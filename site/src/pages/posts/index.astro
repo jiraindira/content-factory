@@ -4,6 +4,7 @@ import PreviousPostTile from "../../components/PreviousPostTile.astro";
 import { getCollection } from "astro:content";
 import { getTaxonomy } from "../../lib/taxonomy";
 import { normalizePostCategories } from "../../lib/normalizeCategories"; // <-- remove primaryCategory
+import { categoryLabel } from "../../lib/taxonomy";
 import { getPostCardDescription } from "../../lib/postExcerpt";
 import {
   buildBreadcrumbList,
@@ -25,7 +26,7 @@ const filterCategories = (() => {
   const explicit = (taxonomy.categories ?? [])
     .map((c: any) => ({
       id: String(c?.id ?? "").trim().toLowerCase(),
-      label: String(c?.label ?? c?.id ?? "").trim(),
+      label: String(c?.label ?? "").trim() || categoryLabel(taxonomy, c?.id ?? ""),
     }))
     .filter((c) => c.id && c.label);
 
@@ -38,7 +39,7 @@ const filterCategories = (() => {
     for (const c of normalizePostCategories(p, taxonomy)) {
       if (!c || seen.has(c)) continue;
       seen.add(c);
-      derived.push({ id: c, label: c });
+      derived.push({ id: c, label: categoryLabel(taxonomy, c) });
     }
   }
 
@@ -125,6 +126,8 @@ const listJsonLd = buildCollectionPageJsonLd({
         </div>
       </div>
     </header>
+
+    <div id="guide-active-filters" class="mt-3 flex flex-wrap gap-2"></div>
 
     <p id="guide-status" class="sr-only" aria-live="polite"></p>
 
@@ -248,6 +251,7 @@ const listJsonLd = buildCollectionPageJsonLd({
     const input = document.getElementById("guide-search");
     const status = document.getElementById("guide-status");
     const countEl = document.getElementById("guide-count");
+    const chipsEl = document.getElementById("guide-active-filters");
     const openBtn = document.getElementById("guide-filter-open");
     const badge = document.getElementById("guide-filter-badge");
     const drawer = document.getElementById("guide-filter-drawer");
@@ -261,6 +265,7 @@ const listJsonLd = buildCollectionPageJsonLd({
       !(input instanceof HTMLInputElement) ||
       !status ||
       !(countEl instanceof HTMLElement) ||
+      !(chipsEl instanceof HTMLElement) ||
       !(openBtn instanceof HTMLButtonElement) ||
       !(drawer instanceof HTMLElement) ||
       !(backdrop instanceof HTMLElement) ||
@@ -292,16 +297,83 @@ const listJsonLd = buildCollectionPageJsonLd({
       cb.checked = selected.has(cb.value.trim().toLowerCase());
     }
 
+    function renderChips() {
+      chipsEl.innerHTML = "";
+
+      if (selected.size === 0) {
+        chipsEl.classList.add("hidden");
+        return;
+      }
+
+      chipsEl.classList.remove("hidden");
+
+      for (const id of Array.from(selected)) {
+        const label =
+          checkboxes.find((cb) => cb.value.trim().toLowerCase() === id)?.closest("label")?.querySelector("span.text-sm")
+            ?.textContent || id;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-50";
+        btn.setAttribute("data-chip", id);
+        btn.setAttribute("aria-label", `Remove ${label} filter`);
+        btn.innerHTML = `${label}<span aria-hidden=\"true\" class=\"text-gray-500\">×</span>`;
+        btn.addEventListener("click", () => {
+          selected.delete(id);
+          for (const cb of checkboxes) {
+            if (cb.value.trim().toLowerCase() === id) cb.checked = false;
+          }
+          apply({ updateUrl: true });
+        });
+
+        chipsEl.appendChild(btn);
+      }
+
+      const clearAll = document.createElement("button");
+      clearAll.type = "button";
+      clearAll.className =
+        "inline-flex items-center rounded-full bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800";
+      clearAll.textContent = "Clear all";
+      clearAll.addEventListener("click", () => {
+        selected.clear();
+        for (const cb of checkboxes) cb.checked = false;
+        apply({ updateUrl: true });
+      });
+      chipsEl.appendChild(clearAll);
+    }
+
+    let drawerOpen = false;
+    let previouslyFocused = null;
+
+    function getFocusableInDrawer() {
+      return Array.from(
+        drawer.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el instanceof HTMLElement && !el.hasAttribute("disabled"));
+    }
+
     function setDrawerOpen(next) {
       const open = Boolean(next);
+      drawerOpen = open;
       openBtn.setAttribute("aria-expanded", open ? "true" : "false");
       drawer.classList.toggle("translate-x-full", !open);
       backdrop.classList.toggle("pointer-events-none", !open);
       backdrop.classList.toggle("opacity-0", !open);
+
+      if (open) {
+        previouslyFocused = document.activeElement;
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+
       if (open) {
         closeBtn.focus();
       } else {
-        openBtn.focus();
+        if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
+        else openBtn.focus();
       }
     }
 
@@ -366,6 +438,7 @@ const listJsonLd = buildCollectionPageJsonLd({
       }
 
       syncBadge();
+      renderChips();
     }
 
     input.addEventListener("input", () => apply({ updateUrl: true }));
@@ -393,6 +466,27 @@ const listJsonLd = buildCollectionPageJsonLd({
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") setDrawerOpen(false);
+
+      if (drawerOpen && e.key === "Tab") {
+        const focusables = getFocusableInDrawer();
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+
+        if (e.shiftKey) {
+          if (active === first || !drawer.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     });
 
     apply({ updateUrl: false });
