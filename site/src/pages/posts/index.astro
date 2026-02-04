@@ -82,21 +82,16 @@ const listJsonLd = buildCollectionPageJsonLd({
 
   <div class="max-w-6xl mx-auto px-6 pt-6">
     <header class="mt-2">
-      <div class="flex items-end justify-between gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div class="flex items-baseline gap-2">
-          <h1 class="whitespace-nowrap text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            All guides
-          </h1>
-          <span
-            id="guide-count"
-            class="whitespace-nowrap text-sm font-semibold text-gray-500 sm:text-base"
-          >
+          <h1 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">All guides</h1>
+          <span id="guide-count" class="text-sm font-semibold text-gray-500 sm:text-base">
             ({posts.length})
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <div class="w-44 sm:w-80">
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+          <div class="min-w-0 flex-1 sm:flex-none sm:w-80">
             <label for="guide-search" class="sr-only">Search guides</label>
             <input
               id="guide-search"
@@ -104,7 +99,7 @@ const listJsonLd = buildCollectionPageJsonLd({
               inputmode="search"
               autocomplete="off"
               placeholder="Search guides…"
-              class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+              class="w-full min-w-0 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
