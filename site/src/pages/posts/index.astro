@@ -1,6 +1,6 @@
 ---
 import SiteLayout from "../../layouts/SiteLayout.astro";
-import PreviousPostTile from "../../components/PreviousPostTile.astro";
+import HomePostCard from "../../components/HomePostCard.astro";
 import { getCollection } from "astro:content";
 import { getTaxonomy } from "../../lib/taxonomy";
 import { normalizePostCategories } from "../../lib/normalizeCategories"; // <-- remove primaryCategory
@@ -132,7 +132,7 @@ const listJsonLd = buildCollectionPageJsonLd({
     <p id="guide-status" class="sr-only" aria-live="polite"></p>
 
     {posts.length ? (
-      <section id="guides-grid" class="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+      <section id="guides-grid" class="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {posts.map((post) => {
           const cats = normalizePostCategories(post, taxonomy);
           const cardDescription = getPostCardDescription(post);
@@ -151,7 +151,7 @@ const listJsonLd = buildCollectionPageJsonLd({
               data-search={haystack}
               data-cats={cats.join(",")}
             >
-              <PreviousPostTile post={post} />
+              <HomePostCard post={post} />
             </div>
           );
         })}

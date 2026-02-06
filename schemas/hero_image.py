@@ -7,6 +7,13 @@ class HeroImageRequest(BaseModel):
     slug: str = Field(..., description="Post slug (folder name) for deterministic output paths.")
     category: str | None = Field(None, description="Optional taxonomy category.")
     title: str | None = Field(None, description="Optional current title.")
+    style_id: str | None = Field(
+        None,
+        description=(
+            "Optional override for the image house style (e.g. 'editorial_minimal_v1'). "
+            "If omitted, the agent uses its default style."
+        ),
+    )
     intro: str = Field(..., description="Rendered intro paragraph(s).")
     picks: list[str] = Field(default_factory=list, description="Rendered pick blurbs (one per product).")
     alternatives: str | None = Field(None, description="Rendered alternatives section (bullets as text).")

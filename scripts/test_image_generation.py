@@ -6,6 +6,7 @@ import os
 import shutil
 import importlib
 import sys
+import time
 from pathlib import Path
 
 # Ensure repository root is on sys.path so imports like `lib.*` resolve when
@@ -82,6 +83,7 @@ def run_agent(
     title: str,
     intro: str,
     picks: list[str],
+    style_id: str | None,
     force: bool,
 ) -> int:
     from agents.image_generation_agent import ImageGenerationAgent
@@ -93,8 +95,15 @@ def run_agent(
     public_images_dir = Path("site/public/images")
     post_dir = public_images_dir / "posts" / slug
 
+    backup_dir: Path | None = None
+
     if force:
-        shutil.rmtree(post_dir, ignore_errors=True)
+        if post_dir.exists():
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            backup_dir = post_dir.with_name(f"{post_dir.name}__backup_{ts}")
+            if backup_dir.exists():
+                shutil.rmtree(backup_dir, ignore_errors=True)
+            shutil.move(str(post_dir), str(backup_dir))
 
     agent = ImageGenerationAgent(
         llm=OpenAIJsonLLM(),
@@ -107,12 +116,25 @@ def run_agent(
         slug=slug,
         category=category,
         title=title,
+        style_id=style_id,
         intro=intro,
         picks=picks,
         alternatives=None,
     )
 
-    out = agent.run(req)
+    try:
+        out = agent.run(req)
+    except Exception:
+        # Restore previous folder to avoid accidental data loss when the model/API fails.
+        if backup_dir is not None and backup_dir.exists():
+            shutil.rmtree(post_dir, ignore_errors=True)
+            shutil.move(str(backup_dir), str(post_dir))
+        raise
+
+    # If generation succeeded, keep the backup folder only when explicitly desired.
+    # Default: remove it to avoid clutter.
+    if backup_dir is not None and backup_dir.exists():
+        shutil.rmtree(backup_dir, ignore_errors=True)
 
     # Verify output files exist on disk
     public_root = Path("site/public")
@@ -172,6 +194,11 @@ def main() -> int:
         help="Semicolon-separated pick snippets",
     )
     p.add_argument(
+        "--style-id",
+        default=None,
+        help="Optional style override (e.g. 'category_illustration_v1')",
+    )
+    p.add_argument(
         "--prompt",
         default=(
             "Minimal editorial illustration, clean shapes, generous white space. "
@@ -194,6 +221,7 @@ def main() -> int:
         title=str(args.title),
         intro=str(args.intro),
         picks=picks,
+        style_id=str(args.style_id) if args.style_id else None,
         force=bool(args.force),
     )
 

@@ -35,6 +35,22 @@ DEFAULT_STYLE = ImageStyle(
 )
 
 
+CATEGORY_ILLUSTRATION_STYLE = ImageStyle(
+    id="category_illustration_v1",
+    description=(
+        "Playful, boutique lifestyle illustration in the same spirit as the site's category tiles: "
+        "bold simplified shapes, slightly quirky proportions, warm modern palette, subtle paper/grain texture, "
+        "clean background, light shadowing, and a cohesive scene. Not photorealistic. No text, no logos."
+    ),
+)
+
+
+_STYLES_BY_ID: dict[str, ImageStyle] = {
+    DEFAULT_STYLE.id: DEFAULT_STYLE,
+    CATEGORY_ILLUSTRATION_STYLE.id: CATEGORY_ILLUSTRATION_STYLE,
+}
+
+
 @dataclass(frozen=True)
 class HeroVariant:
     """A derived crop for a specific surface."""
@@ -89,6 +105,8 @@ class ImageGenerationAgent:
     def run(self, req: HeroImageRequest) -> HeroImageResult:
         self._validate_slug(req.slug)
 
+        style = self._resolve_style(req)
+
         post_dir = self._posts_dir / req.slug
         post_dir.mkdir(parents=True, exist_ok=True)
 
@@ -117,10 +135,10 @@ class ImageGenerationAgent:
                 hero_source_path=pub_source if disk_source.exists() else None,
                 hero_alt=self._default_alt(req),
                 hero_prompt="(existing files; prompt not regenerated)",
-                style_id=self._style.id,
+                style_id=style.id,
             )
 
-        prompt, alt = self._create_prompt_and_alt(req)
+        prompt, alt = self._create_prompt_and_alt(req, style=style)
 
         # 1) Generate canonical 16:9
         src_bytes = self._image_gen.generate(
@@ -141,22 +159,24 @@ class ImageGenerationAgent:
             hero_source_path=pub_source,
             hero_alt=alt,
             hero_prompt=prompt,
-            style_id=self._style.id,
+            style_id=style.id,
         )
 
     # ----------------------------
     # Prompting
     # ----------------------------
 
-    def _create_prompt_and_alt(self, req: HeroImageRequest) -> tuple[str, str]:
+    def _create_prompt_and_alt(self, req: HeroImageRequest, *, style: ImageStyle) -> tuple[str, str]:
         nouns = self._extract_concrete_nouns(req)
         nouns_line = ", ".join(nouns[:8]) if nouns else "general everyday objects"
 
         composition_rules = (
             "Composition/format rules (non-negotiable):\n"
             "- Aspect ratio must be 16:9 (editorial hero).\n"
-            "- Keep the primary subject fully inside the central safe area (middle ~70%).\n"
-            "- Leave generous negative space; avoid critical details at the edges.\n"
+            "- IMPORTANT: This 16:9 source will be center-cropped to other surfaces (notably 4:3 cards).\n"
+            "- Keep the primary subject fully inside a conservative safe area (middle ~60% width AND ~70% height).\n"
+            "- Avoid critical details near the left/right edges (they may be cropped in 4:3).\n"
+            "- Leave generous negative space; backgrounds should tolerate cropping.\n"
             "- No text, no labels, no UI elements.\n"
             "- No logos, trademarks, or brand identifiers.\n"
             "- Not photorealistic product photography.\n"
@@ -170,7 +190,7 @@ class ImageGenerationAgent:
         )
 
         user = (
-            f"STYLE:\n{self._style.description}\n\n"
+            f"STYLE:\n{style.description}\n\n"
             "POST CONTEXT:\n"
             f"- slug: {req.slug}\n"
             f"- category: {req.category or 'n/a'}\n"
@@ -192,7 +212,7 @@ class ImageGenerationAgent:
 
         if not prompt:
             prompt = (
-                f"{self._style.description} "
+                f"{style.description} "
                 "Create a 16:9 editorial hero illustration representing the theme of the post. "
                 "Use simple shapes and ample white space. "
                 "Keep the main subject within the central safe area. "
@@ -209,6 +229,12 @@ class ImageGenerationAgent:
             prompt = (prompt + " Render as a 16:9 editorial hero image.").strip()
 
         return prompt, alt
+
+    def _resolve_style(self, req: HeroImageRequest) -> ImageStyle:
+        style_id = (getattr(req, "style_id", None) or "").strip()
+        if not style_id:
+            return self._style
+        return _STYLES_BY_ID.get(style_id, self._style)
 
     # ----------------------------
     # Image derivation

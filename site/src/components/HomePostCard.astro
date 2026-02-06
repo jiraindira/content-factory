@@ -3,12 +3,20 @@ import type { CollectionEntry } from "astro:content";
 import { Image } from "astro:assets";
 import { getPostHeroImage } from "../lib/postImages";
 
-const { post, taxonomy } = Astro.props as {
+const { post, loading = "lazy", variant = "default" } = Astro.props as {
   post: CollectionEntry<"posts">;
-  taxonomy: any;
+  loading?: "eager" | "lazy";
+  variant?: "default" | "top";
+  featured?: boolean;
 };
 
+const featured = Boolean((Astro.props as any)?.featured);
+
 const FALLBACK_HERO = "/images/placeholder-hero.webp";
+
+function isAbsoluteUrl(v: string) {
+  return /^https?:\/\//i.test(v);
+}
 
 function formatDate(d: Date) {
   try {
@@ -22,22 +30,28 @@ function formatDate(d: Date) {
   }
 }
 
-// Prefer a homepage crop if present
 const heroImageRaw = (() => {
-  const preferred =
+  const heroHome =
     typeof post?.data?.heroImageHome === "string" && post.data.heroImageHome.trim().length > 0
       ? post.data.heroImageHome.trim()
       : null;
 
-  const fallback =
+  const heroCard =
+    typeof post?.data?.heroImageCard === "string" && post.data.heroImageCard.trim().length > 0
+      ? post.data.heroImageCard.trim()
+      : null;
+
+  const hero =
     typeof post?.data?.heroImage === "string" && post.data.heroImage.trim().length > 0
       ? post.data.heroImage.trim()
       : null;
 
-  return preferred || fallback || FALLBACK_HERO;
+  // Featured/top surfaces want the wider home crop; grid cards prefer the dedicated card crop.
+  if (variant === "top") return heroHome || hero || FALLBACK_HERO;
+  return heroCard || heroHome || hero || FALLBACK_HERO;
 })();
 
-const isPublicHero = heroImageRaw.startsWith("/");
+const isPublicHero = heroImageRaw.startsWith("/") || isAbsoluteUrl(heroImageRaw);
 const heroAsset = !isPublicHero ? getPostHeroImage(heroImageRaw) : null;
 
 const safeHeroAlt =
@@ -45,25 +59,25 @@ const safeHeroAlt =
     ? post.data.heroAlt.trim()
     : post?.data?.title ?? "";
 
-// Featured card: editorial layout with consistent text readability (no overlay)
 const WRAP_CLASS =
   "group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2";
 const CARD_CLASS =
   "flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300";
-const HERO_WRAP_CLASS = "relative w-full flex-1 overflow-hidden bg-gray-100 min-h-[260px] sm:min-h-[320px]";
+
+// Editorial card: consistent image treatment, no text overlay.
+const HERO_WRAP_CLASS =
+  variant === "top"
+    ? "relative w-full flex-1 overflow-hidden bg-gray-100 min-h-[240px] sm:min-h-[260px]"
+    : "relative w-full flex-1 overflow-hidden bg-gray-100 min-h-[180px] sm:min-h-[200px]";
 // Full-bleed image fill (cropping is expected if aspect ratios differ).
 const HERO_IMG_CLASS = "absolute inset-0 h-full w-full object-cover";
 ---
 
-<a
-  href={`/posts/${post.slug}`}
-  class={WRAP_CLASS}
-  aria-label={post.data.title}
->
+<a href={`/posts/${post.slug}`} class={WRAP_CLASS} aria-label={post.data.title}>
   <div class={CARD_CLASS}>
     <div class={HERO_WRAP_CLASS}>
       {isPublicHero ? (
-        <img src={heroImageRaw} alt={safeHeroAlt} class={HERO_IMG_CLASS} loading="eager" decoding="async" />
+        <img src={heroImageRaw} alt={safeHeroAlt} class={HERO_IMG_CLASS} loading={loading} decoding="async" />
       ) : heroAsset ? (
         <Image
           src={heroAsset}
@@ -71,25 +85,30 @@ const HERO_IMG_CLASS = "absolute inset-0 h-full w-full object-cover";
           width={heroAsset.width}
           height={heroAsset.height}
           class={HERO_IMG_CLASS}
-          sizes="(min-width: 1024px) 760px, 100vw"
-          loading="eager"
+          sizes="(min-width: 1024px) 360px, 50vw"
+          loading={loading}
           decoding="async"
         />
-      ) : null}
+      ) : (
+        <img src={FALLBACK_HERO} alt={safeHeroAlt} class={HERO_IMG_CLASS} loading={loading} decoding="async" />
+      )}
+
     </div>
 
-    <div class="p-5">
+    <div class="p-4">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-white">
-          Featured
-        </span>
+        {featured ? (
+          <span class="inline-flex items-center rounded-full bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-white">
+            Featured
+          </span>
+        ) : null}
         <span class="text-[11px] font-semibold tracking-wide text-gray-600">
           {formatDate(post.data.publishedAt)}
         </span>
       </div>
-      <h2 class="mt-1 text-lg font-semibold leading-snug tracking-tight text-gray-900 sm:text-xl lg:text-2xl group-hover:text-gray-950">
+      <h3 class="mt-1 text-sm font-semibold leading-snug text-gray-900 line-clamp-2 group-hover:text-gray-950">
         {post.data.title}
-      </h2>
+      </h3>
     </div>
   </div>
 </a>

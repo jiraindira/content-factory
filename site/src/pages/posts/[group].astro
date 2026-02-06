@@ -1,6 +1,6 @@
 ---
 import SiteLayout from "../../layouts/SiteLayout.astro";
-import PreviousPostTile from "../../components/PreviousPostTile.astro";
+import HomePostCard from "../../components/HomePostCard.astro";
 import { getCollection } from "astro:content";
 import { getTaxonomy } from "../../lib/taxonomy";
 import { normalizePostCategories } from "../../lib/normalizeCategories";
@@ -90,7 +90,8 @@ for (const c of filterCategories) {
 }
 
 const pageTitle = `${label} guides`;
-const pageDesc = intro || `Latest curated buying guides in ${label}.`;
+const seoDesc = intro || `Latest curated buying guides in ${label}.`;
+const displayDesc = intro;
 
 const baseUrl = (Astro.site ?? "http://localhost").toString();
 const canonicalPath = `/posts/${groupKey}`;
@@ -105,7 +106,7 @@ const breadcrumbJsonLd = buildBreadcrumbList([
 const listJsonLd = buildCollectionPageJsonLd({
   canonicalUrl,
   name: pageTitle,
-  description: pageDesc,
+  description: seoDesc,
   itemList: filtered.map((p) => ({
     name: String(p.data.title),
     url: toAbsoluteUrl(baseUrl, `/posts/${p.slug}`),
@@ -113,7 +114,7 @@ const listJsonLd = buildCollectionPageJsonLd({
 });
 ---
 
-<SiteLayout title={pageTitle} description={pageDesc} canonical={`/posts/${groupKey}`}>
+<SiteLayout title={pageTitle} description={seoDesc} canonical={`/posts/${groupKey}`}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd)} />
     <script type="application/ld+json" set:html={JSON.stringify(listJsonLd)} />
@@ -127,7 +128,7 @@ const listJsonLd = buildCollectionPageJsonLd({
             <h1 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">{label}</h1>
             <span id="guide-count" class="text-sm font-semibold text-gray-500 sm:text-base">({filtered.length})</span>
           </div>
-          {pageDesc ? <p class="mt-2 text-sm text-gray-600">{pageDesc}</p> : null}
+          {displayDesc ? <p class="mt-2 text-sm text-gray-600">{displayDesc}</p> : null}
           <a href="/posts" class="mt-2 inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800 sm:hidden">
             View all
           </a>
@@ -178,7 +179,7 @@ const listJsonLd = buildCollectionPageJsonLd({
     </div>
 
     {filtered.length ? (
-      <div class="mt-10 grid grid-cols-2 gap-3 sm:gap-4">
+      <div class="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {filtered.map((post) => {
           const cats = normalizePostCategories(post, taxonomy);
           const cardDescription = getPostCardDescription(post);
@@ -189,7 +190,7 @@ const listJsonLd = buildCollectionPageJsonLd({
 
           return (
             <div data-guide data-search={haystack} data-cats={cats.join(",")}>
-              <PreviousPostTile post={post} />
+              <HomePostCard post={post} />
             </div>
           );
         })}
